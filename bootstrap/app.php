@@ -37,7 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'super_admin' => \App\Http\Middleware\RequiresSuperAdmin::class,
+            'tenant_admin' => \App\Http\Middleware\RequiresTenantAdmin::class,
+            'tenant_access' => \App\Http\Middleware\EnsureTenantAccess::class,
             'subdomain.detection' => \App\Http\Middleware\SubdomainDetectionMiddleware::class,
             'auth' => \App\Http\Middleware\Authenticate::class,
         ]);

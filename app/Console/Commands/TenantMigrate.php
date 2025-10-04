@@ -83,6 +83,7 @@ class TenantMigrate extends Command
         // Run migrations on tenant database
         Artisan::call('migrate', [
             '--database' => 'tenant_dynamic',
+            '--path' => 'database/migrations/tenant',
             '--force' => true,
         ]);
 
