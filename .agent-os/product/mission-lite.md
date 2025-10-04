@@ -1,0 +1,5 @@
+# Product Mission (Lite)
+
+The Multi-Tenant Attendance Monitoring System is an enterprise-grade biometric attendance platform that helps organizations of all sizes manage employee attendance efficiently by providing real-time facial recognition processing, intelligent shift management, and comprehensive analytics with complete data isolation per tenant.
+
+The system serves enterprises, SMEs, and multi-location businesses who need secure, scalable attendance tracking with biometric verification. Unlike traditional systems, we provide complete database isolation per tenant, device-based facial recognition that eliminates centralized biometric storage, and intelligent direction detection that automatically determines check-in/check-out using shift patterns and historical behavior. Our MQTT-based real-time architecture ensures sub-2-second event processing with 99.95% uptime, making us the only viable solution for enterprises with strict data sovereignty and real-time monitoring requirements.
