@@ -4,6 +4,7 @@ namespace App\DTOs;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceEventDTO
 {
@@ -131,7 +132,7 @@ class AttendanceEventDTO
     protected static function extractRequiredField(array $data, string $key, string $fieldName): string
     {
         if (! isset($data[$key]) || empty($data[$key])) {
-            \Log::channel('mqtt')->error('Missing required MQTT field', [
+            Log::channel('mqtt')->error('Missing required MQTT field', [
                 'field_name' => $fieldName,
                 'payload_key' => $key,
                 'available_keys' => array_keys($data),
@@ -149,7 +150,7 @@ class AttendanceEventDTO
     protected static function extractOptionalField(array $data, string $key): ?string
     {
         if (! isset($data[$key])) {
-            \Log::channel('mqtt')->debug('Optional MQTT field not present', [
+            Log::channel('mqtt')->debug('Optional MQTT field not present', [
                 'field_name' => $key,
             ]);
 
@@ -269,7 +270,7 @@ class AttendanceEventDTO
         // Validate temperature range if present (30-45°C)
         if ($this->temperature !== null) {
             if ($this->temperature < 30 || $this->temperature > 45) {
-                \Log::channel('mqtt')->warning('Temperature out of valid range', [
+                Log::channel('mqtt')->warning('Temperature out of valid range', [
                     'temperature' => $this->temperature,
                     'custom_id' => $this->custom_id,
                     'device_id' => $this->device_id,
