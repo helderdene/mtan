@@ -18,11 +18,20 @@ class AttendanceRecord extends Model
         'recorded_at',
         'direction',
         'recognition_score',
+        'record_id',
+        'person_name',
+        'device_name',
+        'verify_status',
+        'temperature',
+        'mask_status',
+        'photo_path',
     ];
 
     protected $casts = [
         'recorded_at' => 'datetime',
         'recognition_score' => 'decimal:4',
+        'temperature' => 'decimal:1',
+        'mask_status' => 'boolean',
     ];
 
     protected $appends = ['date', 'check_in', 'check_out', 'total_hours'];

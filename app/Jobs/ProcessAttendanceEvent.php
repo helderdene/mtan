@@ -88,13 +88,13 @@ class ProcessAttendanceEvent implements ShouldQueue
 
             // Step 4: Look up employee by custom_id
             $employee = Employee::on('tenant')
-                ->where('custom_id', $this->event->person_id)
+                ->where('custom_id', $this->event->custom_id)
                 ->where('is_active', true)
                 ->first();
 
             if (! $employee) {
                 Log::channel('mqtt')->warning('Employee not found or inactive', [
-                    'custom_id' => $this->event->person_id,
+                    'custom_id' => $this->event->custom_id,
                     'device_id' => $this->event->device_id,
                     'tenant_id' => $tenant->id,
                 ]);
@@ -116,42 +116,76 @@ class ProcessAttendanceEvent implements ShouldQueue
                 return;
             }
 
-            // Step 6: Check for duplicate records within 1 minute
-            $recordedAt = \Carbon\Carbon::parse($this->event->timestamp);
-            $oneMinuteAgo = $recordedAt->copy()->subMinute();
-            $oneMinuteAfter = $recordedAt->copy()->addMinute();
+            // Step 6: Check for duplicate records using record_id
+            $recordedAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $this->event->timestamp->format('Y-m-d H:i:s'));
 
+            // First check if we've already processed this exact record_id
             $duplicate = AttendanceRecord::on('tenant')
-                ->where('employee_id', $employee->id)
-                ->where('device_id', $device->id)
-                ->whereBetween('recorded_at', [$oneMinuteAgo, $oneMinuteAfter])
+                ->where('record_id', $this->event->record_id)
                 ->exists();
 
             if ($duplicate) {
-                Log::channel('mqtt')->info('Duplicate attendance record detected', [
+                Log::channel('mqtt')->info('Duplicate attendance record detected (same record_id)', [
                     'employee_id' => $employee->id,
                     'device_id' => $device->id,
-                    'recorded_at' => $this->event->timestamp,
+                    'record_id' => $this->event->record_id,
+                    'recorded_at' => $this->event->timestamp->format('Y-m-d H:i:s'),
                 ]);
 
                 return;
             }
 
-            // Step 7: Create attendance record (Phase 1: always check-in)
+            // Also check for duplicate by time window as fallback
+            $oneMinuteAgo = $recordedAt->copy()->subMinute();
+            $oneMinuteAfter = $recordedAt->copy()->addMinute();
+
+            $timeDuplicate = AttendanceRecord::on('tenant')
+                ->where('employee_id', $employee->id)
+                ->where('device_id', $device->id)
+                ->whereBetween('recorded_at', [$oneMinuteAgo, $oneMinuteAfter])
+                ->exists();
+
+            if ($timeDuplicate) {
+                Log::channel('mqtt')->info('Duplicate attendance record detected (within 1-minute window)', [
+                    'employee_id' => $employee->id,
+                    'device_id' => $device->id,
+                    'recorded_at' => $this->event->timestamp->format('Y-m-d H:i:s'),
+                ]);
+
+                return;
+            }
+
+            // Step 7: Create attendance record with all MQTT fields
+            // Convert similarity score from 0-100 range to 0-1 range for database
+            $recognitionScore = $this->event->similarity_score / 100;
+
             AttendanceRecord::on('tenant')->create([
                 'employee_id' => $employee->id,
                 'device_id' => $device->id,
                 'recorded_at' => $recordedAt,
                 'direction' => 'check-in', // Phase 1 simplification
-                'recognition_score' => $this->event->similarity,
+                'recognition_score' => $recognitionScore,
+                'record_id' => $this->event->record_id,
+                'person_name' => $this->event->person_name,
+                'device_name' => $this->event->device_name ?? $device->device_name,
+                'verify_status' => $this->event->verify_status,
+                'temperature' => $this->event->temperature,
+                'mask_status' => $this->event->mask_status,
+                'photo_path' => null, // Photo storage will be implemented in Phase 3
             ]);
 
-            Log::channel('mqtt')->info('Attendance record created', [
+            Log::channel('mqtt')->info('Attendance record created with full MQTT metadata', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,
+                'custom_id' => $this->event->custom_id,
+                'record_id' => $this->event->record_id,
                 'device_id' => $device->id,
-                'recorded_at' => $this->event->timestamp,
-                'recognition_score' => $this->event->similarity,
+                'device_name' => $this->event->device_name,
+                'recorded_at' => $this->event->timestamp->format('Y-m-d H:i:s'),
+                'recognition_score' => $this->event->similarity_score,
+                'temperature' => $this->event->temperature,
+                'mask_status' => $this->event->mask_status,
+                'verify_status' => $this->event->verify_status,
             ]);
 
             // Store notification in cache for UI polling
