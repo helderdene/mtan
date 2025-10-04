@@ -414,4 +414,46 @@ describe('AttendanceEventDTO', function () {
 
         AttendanceEventDTO::fromMqttPayload($topic, $payload);
     })->throws(InvalidArgumentException::class, 'Invalid JSON payload');
+
+    test('serializes and unserializes correctly for queue storage', function () {
+        $timestamp = new DateTimeImmutable('2025-10-04 14:30:45');
+
+        $dto = new AttendanceEventDTO(
+            device_id: 'device001',
+            custom_id: 'EMP001',
+            record_id: 'REC123456',
+            timestamp: $timestamp,
+            similarity_score: 95.5,
+            event_type: 'recognition',
+            person_id: 'P12345',
+            person_name: 'John Doe',
+            device_name: 'Main Entrance',
+            verify_status: '1',
+            temperature: 36.5,
+            mask_status: 1,
+            photo_base64: 'base64photo',
+        );
+
+        // Serialize
+        $serialized = serialize($dto);
+
+        // Unserialize
+        $unserialized = unserialize($serialized);
+
+        // Verify all fields are preserved
+        expect($unserialized->device_id)->toBe('device001')
+            ->and($unserialized->custom_id)->toBe('EMP001')
+            ->and($unserialized->record_id)->toBe('REC123456')
+            ->and($unserialized->timestamp)->toBeInstanceOf(DateTimeImmutable::class)
+            ->and($unserialized->timestamp->format('Y-m-d H:i:s'))->toBe('2025-10-04 14:30:45')
+            ->and($unserialized->similarity_score)->toBe(95.5)
+            ->and($unserialized->event_type)->toBe('recognition')
+            ->and($unserialized->person_id)->toBe('P12345')
+            ->and($unserialized->person_name)->toBe('John Doe')
+            ->and($unserialized->device_name)->toBe('Main Entrance')
+            ->and($unserialized->verify_status)->toBe('1')
+            ->and($unserialized->temperature)->toBe(36.5)
+            ->and($unserialized->mask_status)->toBe(1)
+            ->and($unserialized->photo_base64)->toBe('base64photo');
+    });
 });

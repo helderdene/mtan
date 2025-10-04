@@ -320,4 +320,46 @@ class AttendanceEventDTO
             'photo_base64' => $this->photo_base64,
         ];
     }
+
+    /**
+     * Serialize DTO for queue storage
+     */
+    public function __serialize(): array
+    {
+        return [
+            'device_id' => $this->device_id,
+            'custom_id' => $this->custom_id,
+            'record_id' => $this->record_id,
+            'timestamp' => $this->timestamp->format('Y-m-d H:i:s'),
+            'similarity_score' => $this->similarity_score,
+            'event_type' => $this->event_type,
+            'person_id' => $this->person_id,
+            'person_name' => $this->person_name,
+            'device_name' => $this->device_name,
+            'verify_status' => $this->verify_status,
+            'temperature' => $this->temperature,
+            'mask_status' => $this->mask_status,
+            'photo_base64' => $this->photo_base64,
+        ];
+    }
+
+    /**
+     * Unserialize DTO from queue storage
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->device_id = $data['device_id'];
+        $this->custom_id = $data['custom_id'];
+        $this->record_id = $data['record_id'];
+        $this->timestamp = new DateTimeImmutable($data['timestamp']);
+        $this->similarity_score = $data['similarity_score'];
+        $this->event_type = $data['event_type'];
+        $this->person_id = $data['person_id'] ?? null;
+        $this->person_name = $data['person_name'] ?? null;
+        $this->device_name = $data['device_name'] ?? null;
+        $this->verify_status = $data['verify_status'] ?? null;
+        $this->temperature = $data['temperature'] ?? null;
+        $this->mask_status = $data['mask_status'] ?? null;
+        $this->photo_base64 = $data['photo_base64'] ?? null;
+    }
 }
