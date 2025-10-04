@@ -34,8 +34,9 @@ class SeedTenantDevices extends Command
 
         if ($tenantId) {
             $tenant = Tenant::find($tenantId);
-            if (!$tenant) {
+            if (! $tenant) {
                 $this->error("Tenant with ID {$tenantId} not found.");
+
                 return 1;
             }
             $this->seedTenantDevices($tenant, $count);
@@ -43,6 +44,7 @@ class SeedTenantDevices extends Command
             $tenants = Tenant::active()->get();
             if ($tenants->isEmpty()) {
                 $this->warn('No active tenants found.');
+
                 return 0;
             }
 
@@ -53,6 +55,7 @@ class SeedTenantDevices extends Command
         }
 
         $this->info('Device seeding completed successfully!');
+
         return 0;
     }
 

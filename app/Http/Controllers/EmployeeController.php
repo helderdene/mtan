@@ -9,7 +9,6 @@ use App\Models\Tenant\Employee;
 use App\Models\Tenant\Shift;
 use App\Services\Tenancy\TenantContext;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -196,7 +195,7 @@ class EmployeeController extends Controller
                 'required',
                 'email',
                 'max:255',
-                'unique:tenant.employees,email,' . $employee->id,
+                'unique:tenant.employees,email,'.$employee->id,
             ],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar' => [
@@ -280,14 +279,14 @@ class EmployeeController extends Controller
     {
         $employee->setConnection('tenant');
 
-        if (!$employee->is_active) {
+        if (! $employee->is_active) {
             return redirect()
                 ->back()
                 ->with('error', 'Cannot sync inactive employee.');
         }
 
         $tenant = $tenantContext->getTenant();
-        if (!$tenant) {
+        if (! $tenant) {
             return redirect()
                 ->back()
                 ->with('error', 'Tenant context not found.');
@@ -307,7 +306,7 @@ class EmployeeController extends Controller
     {
         $employee->setConnection('tenant');
 
-        if (!$employee->is_active) {
+        if (! $employee->is_active) {
             return redirect()
                 ->back()
                 ->with('error', 'Cannot sync inactive employee.');
@@ -320,7 +319,7 @@ class EmployeeController extends Controller
         // Get tenant from request attributes (set by InitializeTenancy middleware)
         $tenant = $request->attributes->get('tenant');
 
-        if (!$tenant) {
+        if (! $tenant) {
             return redirect()
                 ->back()
                 ->with('error', 'Tenant not found.');

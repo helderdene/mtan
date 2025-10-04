@@ -96,7 +96,7 @@ class Device extends Model
      */
     public function getStatusAttribute(): string
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return 'inactive';
         }
 

@@ -148,12 +148,12 @@ class SyncEmployeeToDevices implements ShouldQueue
                             'strategyInfo' => [
                                 'strategyNum' => 1,
                                 'strategyData' => [
-                                    ['strategyID' => '1', 'strategyName' => 'default']
-                                ]
+                                    ['strategyID' => '1', 'strategyName' => 'default'],
+                                ],
                             ],
                             // Only include pic if we have a photo
                             ...($photo ? ['pic' => $photo] : []),
-                        ]
+                        ],
                     ], JSON_UNESCAPED_SLASHES);
 
                     // Publish to device-specific topic (Laravel -> Device)
@@ -206,20 +206,21 @@ class SyncEmployeeToDevices implements ShouldQueue
      */
     protected function getEmployeePhotoBase64(Employee $employee): string
     {
-        if (!$employee->avatar) {
+        if (! $employee->avatar) {
             return '';
         }
 
         try {
             // Avatar is stored in public disk (storage/app/public/avatars/...)
-            $photoPath = storage_path('app/public/' . $employee->avatar);
+            $photoPath = storage_path('app/public/'.$employee->avatar);
 
-            if (!file_exists($photoPath)) {
+            if (! file_exists($photoPath)) {
                 Log::channel('mqtt')->warning('Employee photo file not found', [
                     'employee_id' => $employee->id,
                     'avatar_path' => $employee->avatar,
                     'full_path' => $photoPath,
                 ]);
+
                 return '';
             }
 
@@ -228,7 +229,7 @@ class SyncEmployeeToDevices implements ShouldQueue
             $mimeType = $imageInfo['mime'];
 
             // Create image resource based on type
-            $image = match($mimeType) {
+            $image = match ($mimeType) {
                 'image/jpeg' => imagecreatefromjpeg($photoPath),
                 'image/png' => imagecreatefrompng($photoPath),
                 'image/gif' => imagecreatefromgif($photoPath),
@@ -258,8 +259,8 @@ class SyncEmployeeToDevices implements ShouldQueue
 
             if ($width > $maxDimension || $height > $maxDimension) {
                 $ratio = min($maxDimension / $width, $maxDimension / $height);
-                $newWidth = (int)($width * $ratio);
-                $newHeight = (int)($height * $ratio);
+                $newWidth = (int) ($width * $ratio);
+                $newHeight = (int) ($height * $ratio);
 
                 $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
                 imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);

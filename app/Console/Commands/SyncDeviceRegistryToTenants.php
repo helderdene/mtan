@@ -33,8 +33,9 @@ class SyncDeviceRegistryToTenants extends Command
 
         if ($tenantId) {
             $tenant = Tenant::find($tenantId);
-            if (!$tenant) {
+            if (! $tenant) {
                 $this->error("Tenant with ID {$tenantId} not found.");
+
                 return 1;
             }
             $this->syncTenant($tenant);
@@ -42,6 +43,7 @@ class SyncDeviceRegistryToTenants extends Command
             $tenants = Tenant::active()->get();
             if ($tenants->isEmpty()) {
                 $this->warn('No active tenants found.');
+
                 return 0;
             }
 
@@ -52,6 +54,7 @@ class SyncDeviceRegistryToTenants extends Command
         }
 
         $this->info('Device registry sync completed successfully!');
+
         return 0;
     }
 
@@ -63,7 +66,8 @@ class SyncDeviceRegistryToTenants extends Command
         $devices = DeviceRegistry::where('tenant_id', $tenant->id)->get();
 
         if ($devices->isEmpty()) {
-            $this->warn("  No devices found in registry for this tenant.");
+            $this->warn('  No devices found in registry for this tenant.');
+
             return;
         }
 

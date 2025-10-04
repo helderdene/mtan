@@ -30,7 +30,7 @@ class TenantAdminCredentialsMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Admin Account for ' . $this->companyName,
+            subject: 'Your Admin Account for '.$this->companyName,
         );
     }
 

@@ -9,7 +9,6 @@ use App\Models\Tenant\Employee;
 use App\Services\MQTT\MessageHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
@@ -18,7 +17,7 @@ beforeEach(function () {
     // Drop test database if it exists from previous run
     try {
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
@@ -68,7 +67,7 @@ beforeEach(function () {
         is_active: $this->tenant->is_active,
     );
 
-    $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+    $manager = new \App\Services\Tenancy\TenantDatabaseManager;
     $manager->provisionTenant($tenantDto);
     $manager->setupTenantConnection($tenantDto);
 
@@ -97,7 +96,7 @@ beforeEach(function () {
 afterEach(function () {
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );
@@ -118,7 +117,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle MQTT message (which dispatches job to queue)
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload);
 
         // Process queued jobs
@@ -148,7 +147,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle MQTT message and process queue
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload);
 
         Artisan::call('queue:work', [
@@ -178,7 +177,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle both messages
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload1);
         $handler->handle($topic, $payload2);
 
@@ -210,7 +209,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle both messages
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload1);
         $handler->handle($topic, $payload2);
 
@@ -237,7 +236,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle MQTT message
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload);
 
         // Assert: Job was dispatched to attendance queue
@@ -259,7 +258,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle MQTT message and process queue
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload);
 
         Artisan::call('queue:work', [
@@ -282,7 +281,7 @@ describe('MQTT to Queue to Database Integration', function () {
         ]);
 
         // Act: Handle MQTT message and process queue
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
         $handler->handle($topic, $payload);
 
         Artisan::call('queue:work', [
@@ -304,7 +303,7 @@ describe('MQTT to Queue to Database Integration', function () {
             'similarity' => 0.9800,
         ]);
 
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         // Act: Process multiple messages
         $handler->handle($topic, $payload);

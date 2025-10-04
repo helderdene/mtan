@@ -79,7 +79,7 @@ class Employee extends Model
     {
         do {
             // Generate custom_id: EMP + 6 random digits
-            $customId = 'EMP' . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
+            $customId = 'EMP'.str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
             // Check if it already exists
             $exists = static::where('custom_id', $customId)->exists();
@@ -185,11 +185,12 @@ class Employee extends Model
             ->where('database_name', config('database.connections.tenant.database'))
             ->value('id');
 
-        if (!$tenantId) {
+        if (! $tenantId) {
             \Log::warning('Cannot sync employee: tenant ID not found', [
                 'employee_id' => $employee->id,
                 'database' => config('database.connections.tenant.database'),
             ]);
+
             return;
         }
 

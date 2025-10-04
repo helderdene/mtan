@@ -13,6 +13,7 @@ class Tenant extends Model
     protected $connection = 'central';
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [

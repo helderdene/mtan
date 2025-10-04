@@ -5,7 +5,6 @@ namespace App\Services\Tenancy;
 use App\DTOs\Tenant;
 use App\Mail\TenantAdminCredentialsMail;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -25,8 +24,9 @@ class TenantAdminSeeder
             // Retrieve the admin email and password from the tenant
             $tenantModel = \App\Models\Tenant::find($tenant->id);
 
-            if (!$tenantModel || !$tenantModel->admin_email || !$tenantModel->admin_password) {
+            if (! $tenantModel || ! $tenantModel->admin_email || ! $tenantModel->admin_password) {
                 logger()->warning("Cannot create admin: missing email or password for tenant {$tenant->id}");
+
                 return null;
             }
 
@@ -97,10 +97,10 @@ class TenantAdminSeeder
 
         // If tenant has custom domain, use that
         if ($tenant->domain) {
-            return 'https://' . $tenant->domain . '/login';
+            return 'https://'.$tenant->domain.'/login';
         }
 
         // Otherwise use subdomain
-        return 'http://' . $tenant->subdomain . '.' . $baseDomain . '/login';
+        return 'http://'.$tenant->subdomain.'.'.$baseDomain.'/login';
     }
 }

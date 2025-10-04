@@ -38,10 +38,11 @@ class HandleDeviceOnlineStatus implements ShouldQueue
                 ->where('device_id', $this->facesluiceId)
                 ->first();
 
-            if (!$deviceRegistry) {
+            if (! $deviceRegistry) {
                 Log::channel('mqtt')->warning('Device not found in registry for online status', [
                     'facesluiceId' => $this->facesluiceId,
                 ]);
+
                 return;
             }
 
@@ -51,10 +52,11 @@ class HandleDeviceOnlineStatus implements ShouldQueue
                 ->where('is_active', true)
                 ->first();
 
-            if (!$tenant) {
+            if (! $tenant) {
                 Log::channel('mqtt')->warning('Tenant not found or inactive for online status', [
                     'tenant_id' => $deviceRegistry->tenant_id,
                 ]);
+
                 return;
             }
 
@@ -79,16 +81,17 @@ class HandleDeviceOnlineStatus implements ShouldQueue
                 ->where('device_id', $this->facesluiceId)
                 ->first();
 
-            if (!$device) {
+            if (! $device) {
                 Log::channel('mqtt')->warning('Device not found in tenant database for online status', [
                     'facesluiceId' => $this->facesluiceId,
                     'tenant_id' => $tenant->id,
                 ]);
+
                 return;
             }
 
             // Step 5: Check if device was offline (no heartbeat in last 2 minutes)
-            $wasOffline = !$device->last_heartbeat_at ||
+            $wasOffline = ! $device->last_heartbeat_at ||
                           $device->last_heartbeat_at->lt(now()->subMinutes(2));
 
             // Update device status and last heartbeat
@@ -118,9 +121,8 @@ class HandleDeviceOnlineStatus implements ShouldQueue
             ]);
 
             // Publish to basic topic only
-            $basicTopic = "mqtt/face/basic";
+            $basicTopic = 'mqtt/face/basic';
             $mqttClient->publish($basicTopic, $ackPayload, 1);
-
 
         } catch (\Exception $e) {
             Log::channel('mqtt')->error('Failed to handle device online status', [

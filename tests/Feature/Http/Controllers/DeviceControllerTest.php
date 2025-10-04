@@ -1,8 +1,8 @@
 <?php
 
+use App\Models\Tenant\Department;
 use App\Models\Tenant\Device;
 use App\Models\Tenant\Employee;
-use App\Models\Tenant\Department;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -41,7 +41,7 @@ beforeEach(function () {
         is_active: $tenant->is_active,
     );
 
-    $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+    $manager = new \App\Services\Tenancy\TenantDatabaseManager;
     $manager->provisionTenant($tenantDto);
     $manager->setupTenantConnection($tenantDto);
 
@@ -52,7 +52,7 @@ beforeEach(function () {
 afterEach(function () {
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );

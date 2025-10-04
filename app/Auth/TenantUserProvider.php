@@ -3,7 +3,6 @@
 namespace App\Auth;
 
 use Illuminate\Auth\EloquentUserProvider;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Config;
 
 class TenantUserProvider extends EloquentUserProvider

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\DeviceRegistry;
 use App\Models\Tenant;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DeviceRegistrySeeder extends Seeder
@@ -19,6 +18,7 @@ class DeviceRegistrySeeder extends Seeder
 
         if ($tenants->isEmpty()) {
             $this->command->warn('No active tenants found. Skipping device registry seeding.');
+
             return;
         }
 

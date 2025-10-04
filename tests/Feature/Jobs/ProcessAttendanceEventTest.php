@@ -10,7 +10,6 @@ use App\Models\Tenant\Device;
 use App\Models\Tenant\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -56,7 +55,7 @@ beforeEach(function () {
         is_active: $this->tenant->is_active,
     );
 
-    $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+    $manager = new \App\Services\Tenancy\TenantDatabaseManager;
     $manager->provisionTenant($tenantDto);
 
     // Set up tenant connection and create test data
@@ -87,7 +86,7 @@ beforeEach(function () {
 afterEach(function () {
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );

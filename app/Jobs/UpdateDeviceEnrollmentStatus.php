@@ -40,10 +40,11 @@ class UpdateDeviceEnrollmentStatus implements ShouldQueue
                 ->where('device_id', $this->deviceId)
                 ->first();
 
-            if (!$deviceRegistry) {
+            if (! $deviceRegistry) {
                 Log::channel('mqtt')->warning('Device not found in registry', [
                     'device_id' => $this->deviceId,
                 ]);
+
                 return;
             }
 
@@ -53,10 +54,11 @@ class UpdateDeviceEnrollmentStatus implements ShouldQueue
                 ->where('is_active', true)
                 ->first();
 
-            if (!$tenant) {
+            if (! $tenant) {
                 Log::channel('mqtt')->warning('Tenant not found or inactive', [
                     'tenant_id' => $deviceRegistry->tenant_id,
                 ]);
+
                 return;
             }
 
@@ -81,22 +83,24 @@ class UpdateDeviceEnrollmentStatus implements ShouldQueue
                 ->where('device_id', $this->deviceId)
                 ->first();
 
-            if (!$device) {
+            if (! $device) {
                 Log::channel('mqtt')->warning('Device not found in tenant database', [
                     'device_id' => $this->deviceId,
                     'tenant_id' => $tenant->id,
                 ]);
+
                 return;
             }
 
             // Step 5: Find employee by customId
             $customId = $this->acknowledgmentData['customId'] ?? null;
 
-            if (!$customId) {
+            if (! $customId) {
                 Log::channel('mqtt')->error('Missing customId in acknowledgment', [
                     'device_id' => $this->deviceId,
                     'operator' => $this->operator,
                 ]);
+
                 return;
             }
 
@@ -104,11 +108,12 @@ class UpdateDeviceEnrollmentStatus implements ShouldQueue
                 ->where('custom_id', $customId)
                 ->first();
 
-            if (!$employee) {
+            if (! $employee) {
                 Log::channel('mqtt')->warning('Employee not found', [
                     'custom_id' => $customId,
                     'device_id' => $this->deviceId,
                 ]);
+
                 return;
             }
 

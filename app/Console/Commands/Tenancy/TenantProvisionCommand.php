@@ -77,7 +77,7 @@ class TenantProvisionCommand extends Command
             $this->newLine();
             $this->line('Running database seeder...');
 
-            $seeder = new TenantDatabaseSeeder();
+            $seeder = new TenantDatabaseSeeder;
 
             // Set default connection to tenant
             $originalConnection = DB::getDefaultConnection();
@@ -93,7 +93,7 @@ class TenantProvisionCommand extends Command
 
         $this->newLine();
         $this->info('Tenant provisioned successfully!');
-        $this->comment("Access URL: https://{$tenant->subdomain}." . config('app.domain', 'example.com'));
+        $this->comment("Access URL: https://{$tenant->subdomain}.".config('app.domain', 'example.com'));
 
         return 0;
     }

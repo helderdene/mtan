@@ -24,7 +24,7 @@ class InitializeTenancy
         // Get subdomain from request attributes (set by SubdomainDetectionMiddleware)
         $subdomain = $request->attributes->get('subdomain');
 
-        if (!$subdomain) {
+        if (! $subdomain) {
             // No subdomain, use main domain - don't initialize tenancy
             return $next($request);
         }
@@ -32,11 +32,11 @@ class InitializeTenancy
         // Look up tenant by subdomain in central database
         $tenant = Tenant::on('central')->where('subdomain', $subdomain)->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             abort(404, 'Tenant not found');
         }
 
-        if (!$tenant->is_active) {
+        if (! $tenant->is_active) {
             abort(403, 'This tenant account has been deactivated');
         }
 

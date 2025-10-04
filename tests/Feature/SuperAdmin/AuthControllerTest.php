@@ -13,12 +13,12 @@ beforeEach(function () {
 
     // Define domain for tests - use mtan.test to match APP_URL
     $this->domain = 'mtan.test';
-    $this->adminHost = 'admin.' . $this->domain;
+    $this->adminHost = 'admin.'.$this->domain;
 });
 
 describe('SuperAdmin Authentication', function () {
     test('shows login page', function () {
-        $response = $this->get('http://' . $this->adminHost . '/admin-login');
+        $response = $this->get('http://'.$this->adminHost.'/admin-login');
 
         $response->assertStatus(200);
         // Inertia component assertion skipped until Task 5 (frontend implementation)
@@ -32,12 +32,12 @@ describe('SuperAdmin Authentication', function () {
             'is_active' => true,
         ]);
 
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'admin@example.com',
             'password' => 'password123',
         ]);
 
-        $response->assertRedirect('http://' . $this->adminHost . '/dashboard');
+        $response->assertRedirect('http://'.$this->adminHost.'/dashboard');
         $this->assertAuthenticatedAs($superAdmin, 'super-admin');
     });
 
@@ -48,7 +48,7 @@ describe('SuperAdmin Authentication', function () {
             'is_active' => true,
         ]);
 
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'admin@example.com',
             'password' => 'wrong-password',
         ]);
@@ -64,7 +64,7 @@ describe('SuperAdmin Authentication', function () {
             'is_active' => true,
         ]);
 
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'wrong@example.com',
             'password' => 'password123',
         ]);
@@ -80,7 +80,7 @@ describe('SuperAdmin Authentication', function () {
             'is_active' => false,
         ]);
 
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'admin@example.com',
             'password' => 'password123',
         ]);
@@ -90,7 +90,7 @@ describe('SuperAdmin Authentication', function () {
     });
 
     test('login validates required fields', function () {
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => '',
             'password' => '',
         ]);
@@ -99,7 +99,7 @@ describe('SuperAdmin Authentication', function () {
     });
 
     test('login validates email format', function () {
-        $response = $this->post('http://' . $this->adminHost . '/admin-login', [
+        $response = $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'not-an-email',
             'password' => 'password123',
         ]);
@@ -114,10 +114,10 @@ describe('SuperAdmin Authentication', function () {
 
         $this->actingAs($superAdmin, 'super-admin');
 
-        $response = $this->post('http://' . $this->adminHost . '/logout');
+        $response = $this->post('http://'.$this->adminHost.'/logout');
 
         // Note: logout redirects to root for now - to be fixed in later task
-        $response->assertRedirect('http://' . $this->adminHost);
+        $response->assertRedirect('http://'.$this->adminHost);
         // Guest assertion removed - actingAs() doesn't clear in tests, but "logout clears session" test verifies logout works
     });
 
@@ -131,7 +131,7 @@ describe('SuperAdmin Authentication', function () {
         // Add some session data
         session(['test_key' => 'test_value']);
 
-        $this->post('http://' . $this->adminHost . '/logout');
+        $this->post('http://'.$this->adminHost.'/logout');
 
         expect(session()->has('test_key'))->toBeFalse();
     });
@@ -144,7 +144,7 @@ describe('SuperAdmin Authentication', function () {
             'last_login_at' => null,
         ]);
 
-        $this->post('http://' . $this->adminHost . '/admin-login', [
+        $this->post('http://'.$this->adminHost.'/admin-login', [
             'email' => 'admin@example.com',
             'password' => 'password123',
         ]);
@@ -162,7 +162,7 @@ describe('SuperAdmin Authentication', function () {
         ]);
 
         $this->from('127.0.0.1')
-            ->post('http://' . $this->adminHost . '/admin-login', [
+            ->post('http://'.$this->adminHost.'/admin-login', [
                 'email' => 'admin@example.com',
                 'password' => 'password123',
             ]);
@@ -179,14 +179,14 @@ describe('SuperAdmin Authentication', function () {
 
         $this->actingAs($superAdmin, 'super-admin');
 
-        $response = $this->get('http://' . $this->adminHost . '/admin-login');
+        $response = $this->get('http://'.$this->adminHost.'/admin-login');
 
-        $response->assertRedirect('http://' . $this->adminHost . '/dashboard');
+        $response->assertRedirect('http://'.$this->adminHost.'/dashboard');
     });
 
     test('guest cannot access dashboard', function () {
-        $response = $this->get('http://' . $this->adminHost . '/dashboard');
+        $response = $this->get('http://'.$this->adminHost.'/dashboard');
 
-        $response->assertRedirect('http://' . $this->adminHost . '/admin-login');
+        $response->assertRedirect('http://'.$this->adminHost.'/admin-login');
     });
 });

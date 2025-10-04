@@ -21,6 +21,7 @@ class EnsureSuperAdmin
 
         if (! auth('super-admin')->user()->is_active) {
             auth('super-admin')->logout();
+
             return redirect()->route('super-admin.login')
                 ->with('error', 'Your account has been deactivated.');
         }

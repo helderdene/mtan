@@ -36,8 +36,9 @@ class SyncEmployeeCommand extends Command
             // Get tenant ID
             $tenantId = $this->option('tenant') ?? $this->getTenantIdFromConnection();
 
-            if (!$tenantId) {
+            if (! $tenantId) {
                 $this->error('Unable to determine tenant. Please specify --tenant option or run in tenant context.');
+
                 return self::FAILURE;
             }
 
@@ -47,8 +48,9 @@ class SyncEmployeeCommand extends Command
                 ->where('is_active', true)
                 ->first();
 
-            if (!$tenant) {
+            if (! $tenant) {
                 $this->error("Tenant '{$tenantId}' not found or inactive.");
+
                 return self::FAILURE;
             }
 
@@ -61,15 +63,17 @@ class SyncEmployeeCommand extends Command
 
             $employeeId = $this->argument('employee_id');
 
-            if (!$employeeId) {
+            if (! $employeeId) {
                 $this->error('Please provide an employee ID or use --all flag.');
+
                 return self::FAILURE;
             }
 
             return $this->syncEmployee($employeeId, $tenantId);
 
         } catch (\Exception $e) {
-            $this->error('Failed to sync employee(s): ' . $e->getMessage());
+            $this->error('Failed to sync employee(s): '.$e->getMessage());
+
             return self::FAILURE;
         }
     }
@@ -84,8 +88,9 @@ class SyncEmployeeCommand extends Command
             ->where('id', $tenantId)
             ->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->error("Tenant '{$tenantId}' not found.");
+
             return self::FAILURE;
         }
 
@@ -110,13 +115,15 @@ class SyncEmployeeCommand extends Command
             ->where('id', $employeeId)
             ->first();
 
-        if (!$employee) {
+        if (! $employee) {
             $this->error("Employee ID {$employeeId} not found.");
+
             return self::FAILURE;
         }
 
-        if (!$employee->is_active) {
+        if (! $employee->is_active) {
             $this->warn("Employee '{$employee->full_name}' is inactive. Skipping sync.");
+
             return self::FAILURE;
         }
 
@@ -140,8 +147,9 @@ class SyncEmployeeCommand extends Command
             ->where('id', $tenantId)
             ->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->error("Tenant '{$tenantId}' not found.");
+
             return self::FAILURE;
         }
 
@@ -167,6 +175,7 @@ class SyncEmployeeCommand extends Command
 
         if ($employees->isEmpty()) {
             $this->warn('No active employees found to sync.');
+
             return self::SUCCESS;
         }
 
@@ -197,7 +206,7 @@ class SyncEmployeeCommand extends Command
     {
         $database = config('database.connections.tenant.database');
 
-        if (!$database) {
+        if (! $database) {
             return null;
         }
 

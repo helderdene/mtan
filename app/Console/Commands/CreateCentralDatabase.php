@@ -3,11 +3,11 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CreateCentralDatabase extends Command
 {
     protected $signature = 'db:create-central';
+
     protected $description = 'Create the central database for multi-tenancy';
 
     public function handle(): int
@@ -36,7 +36,8 @@ class CreateCentralDatabase extends Command
 
             return 0;
         } catch (\PDOException $e) {
-            $this->error("Failed to create database: " . $e->getMessage());
+            $this->error('Failed to create database: '.$e->getMessage());
+
             return 1;
         }
     }

@@ -1,6 +1,5 @@
 <?php
 
-use App\DTOs\AttendanceEventDTO;
 use App\Services\MQTT\MessageHandler;
 use Illuminate\Support\Facades\Queue;
 
@@ -10,13 +9,13 @@ beforeEach(function () {
 
 describe('MessageHandler', function () {
     test('can instantiate message handler', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         expect($handler)->toBeInstanceOf(MessageHandler::class);
     });
 
     test('processes recognition event and dispatches to queue', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $topic = 'device/DEVICE001/recognition';
         $payload = json_encode([
@@ -37,7 +36,7 @@ describe('MessageHandler', function () {
     });
 
     test('processes stranger event and dispatches to queue', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $topic = 'device/DEVICE002/stranger';
         $payload = json_encode([
@@ -57,7 +56,7 @@ describe('MessageHandler', function () {
     });
 
     test('logs received messages', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         Log::shouldReceive('channel')
             ->with('mqtt')
@@ -81,7 +80,7 @@ describe('MessageHandler', function () {
     });
 
     test('logs errors for invalid payloads', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         Log::shouldReceive('channel')
             ->with('mqtt')
@@ -100,7 +99,7 @@ describe('MessageHandler', function () {
     });
 
     test('extracts device_id from topic correctly', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $topic = 'device/DEVICE-ABC-123/recognition';
         $payload = json_encode([
@@ -116,7 +115,7 @@ describe('MessageHandler', function () {
     });
 
     test('dispatches acknowledgement events', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $topic = 'device/DEVICE005/ack';
         $payload = json_encode([
@@ -133,7 +132,7 @@ describe('MessageHandler', function () {
     });
 
     test('can get processing statistics', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $stats = $handler->getStatistics();
 
@@ -142,7 +141,7 @@ describe('MessageHandler', function () {
     });
 
     test('updates statistics after processing messages', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         $topic = 'device/DEVICE006/recognition';
         $payload = json_encode([
@@ -160,7 +159,7 @@ describe('MessageHandler', function () {
     });
 
     test('increments error count for failed processing', function () {
-        $handler = new MessageHandler();
+        $handler = new MessageHandler;
 
         Log::shouldReceive('channel')->andReturnSelf();
         Log::shouldReceive('error');

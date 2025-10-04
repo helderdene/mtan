@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant\Department;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,7 +77,7 @@ class DepartmentController extends Controller
                 'required',
                 'string',
                 'max:100',
-                'unique:tenant.departments,name,' . $department->id,
+                'unique:tenant.departments,name,'.$department->id,
             ],
         ]);
 

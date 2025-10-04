@@ -20,7 +20,7 @@ beforeEach(function () {
         is_active: true,
     );
 
-    $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+    $manager = new \App\Services\Tenancy\TenantDatabaseManager;
     $manager->provisionTenant($tenant);
 
     // Set default connection to tenant for models
@@ -33,7 +33,7 @@ afterEach(function () {
 
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );

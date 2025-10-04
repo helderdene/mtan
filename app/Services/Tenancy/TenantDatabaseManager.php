@@ -176,10 +176,10 @@ class TenantDatabaseManager
             }
 
             // Step 4: Create default admin user
-            $adminSeeder = new TenantAdminSeeder();
+            $adminSeeder = new TenantAdminSeeder;
             $admin = $adminSeeder->createDefaultAdmin($tenant);
 
-            if (!$admin) {
+            if (! $admin) {
                 logger()->warning("Admin user creation failed for tenant: {$tenant->company_name}", [
                     'tenant_id' => $tenant->id,
                 ]);

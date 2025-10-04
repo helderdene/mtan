@@ -36,7 +36,7 @@ class DeviceRegistryObserver
     {
         try {
             $tenant = Tenant::find($deviceRegistry->tenant_id);
-            if (!$tenant) {
+            if (! $tenant) {
                 return;
             }
 
@@ -60,8 +60,9 @@ class DeviceRegistryObserver
     {
         try {
             $tenant = Tenant::find($deviceRegistry->tenant_id);
-            if (!$tenant) {
+            if (! $tenant) {
                 Log::warning("Tenant not found for device {$deviceRegistry->device_id}");
+
                 return;
             }
 

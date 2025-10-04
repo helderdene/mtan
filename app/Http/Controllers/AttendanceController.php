@@ -54,7 +54,7 @@ class AttendanceController extends Controller
         // Get tenant from request attributes (set by InitializeTenancy middleware)
         $tenant = $request->attributes->get('tenant');
 
-        if (!$tenant) {
+        if (! $tenant) {
             return response()->json(['notifications' => []]);
         }
 
@@ -67,7 +67,7 @@ class AttendanceController extends Controller
 
         // Query the cache entries table for this tenant's notifications
         $cacheEntries = \DB::table('cache')
-            ->where('key', 'like', $prefix . 'attendance_notification:' . $tenant->id . ':%')
+            ->where('key', 'like', $prefix.'attendance_notification:'.$tenant->id.':%')
             ->get();
 
         foreach ($cacheEntries as $entry) {

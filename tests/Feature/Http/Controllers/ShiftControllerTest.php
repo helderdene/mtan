@@ -12,7 +12,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Create a test tenant database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );
@@ -55,7 +55,7 @@ beforeEach(function () {
 afterEach(function () {
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );

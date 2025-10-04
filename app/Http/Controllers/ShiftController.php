@@ -159,6 +159,6 @@ class ShiftController extends Controller
             ]);
         }
 
-        return back()->with('success', count($validated['employee_ids']) . ' employee(s) assigned to shift successfully.');
+        return back()->with('success', count($validated['employee_ids']).' employee(s) assigned to shift successfully.');
     }
 }

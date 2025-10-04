@@ -98,7 +98,7 @@ class RemoveEmployeeFromDevices implements ShouldQueue
                 try {
                     $device = $enrollment->device;
 
-                    if (!$device || !$device->is_active) {
+                    if (! $device || ! $device->is_active) {
                         continue;
                     }
 
@@ -108,7 +108,7 @@ class RemoveEmployeeFromDevices implements ShouldQueue
                         'operator' => 'DeletePerson',
                         'info' => [
                             'customId' => $employee->custom_id,
-                        ]
+                        ],
                     ]);
 
                     // Publish to device-specific topic (Laravel -> Device)

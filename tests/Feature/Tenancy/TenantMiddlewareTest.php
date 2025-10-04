@@ -226,7 +226,7 @@ describe('Database Connection Setup', function () {
         ]);
 
         // Create the tenant database
-        $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+        $manager = new \App\Services\Tenancy\TenantDatabaseManager;
         $tenant = new \App\DTOs\Tenant(
             id: 'aa0e8400-e29b-41d4-a716-446655440005',
             company_name: 'DB Test Corp',

@@ -11,6 +11,7 @@ class DeviceRegistry extends Model
     use HasFactory;
 
     protected $connection = 'central';
+
     protected $table = 'device_registry';
 
     protected $fillable = [

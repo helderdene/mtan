@@ -58,7 +58,7 @@ class ImpersonationLog extends Model
      */
     public function duration(): ?int
     {
-        if (!$this->ended_at) {
+        if (! $this->ended_at) {
             return null;
         }
 

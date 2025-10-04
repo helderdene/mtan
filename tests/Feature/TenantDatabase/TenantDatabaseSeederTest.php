@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -19,7 +17,7 @@ beforeEach(function () {
         is_active: true,
     );
 
-    $manager = new \App\Services\Tenancy\TenantDatabaseManager();
+    $manager = new \App\Services\Tenancy\TenantDatabaseManager;
 
     // Provision tenant database (creates DB, runs migrations)
     $manager->provisionTenant($tenant);
@@ -28,7 +26,7 @@ beforeEach(function () {
 afterEach(function () {
     // Drop test database
     $pdo = new \PDO(
-        'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+        'mysql:host='.env('DB_HOST', '127.0.0.1'),
         env('DB_USERNAME', 'root'),
         env('DB_PASSWORD', '')
     );
@@ -36,8 +34,9 @@ afterEach(function () {
 });
 
 // Helper function to run seeder on tenant connection
-function runTenantSeeder() {
-    $seeder = new \Database\Seeders\TenantDatabaseSeeder();
+function runTenantSeeder()
+{
+    $seeder = new \Database\Seeders\TenantDatabaseSeeder;
 
     // Temporarily set default connection to tenant
     $originalConnection = DB::getDefaultConnection();

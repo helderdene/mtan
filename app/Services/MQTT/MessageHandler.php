@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 class MessageHandler
 {
     protected int $totalProcessed = 0;
+
     protected int $totalErrors = 0;
+
     protected ?int $lastProcessedAt = null;
 
     /**
@@ -91,11 +93,12 @@ class MessageHandler
     {
         $data = json_decode($payload, true);
 
-        if (!$data) {
+        if (! $data) {
             Log::channel('mqtt')->error('Invalid sync acknowledgment payload', [
                 'topic' => $topic,
                 'payload' => $payload,
             ]);
+
             return;
         }
 
@@ -103,10 +106,11 @@ class MessageHandler
         preg_match('/mqtt\/face\/([^\/]+)\/Ack/', $topic, $matches);
         $deviceId = $matches[1] ?? null;
 
-        if (!$deviceId) {
+        if (! $deviceId) {
             Log::channel('mqtt')->error('Unable to parse device sync acknowledgment topic', [
                 'topic' => $topic,
             ]);
+
             return;
         }
 
@@ -115,11 +119,12 @@ class MessageHandler
         $code = $data['code'] ?? null;
         $info = $data['info'] ?? [];
 
-        if (!$operator) {
+        if (! $operator) {
             Log::channel('mqtt')->error('Missing operator in acknowledgment payload', [
                 'topic' => $topic,
                 'payload' => $data,
             ]);
+
             return;
         }
 
@@ -154,11 +159,12 @@ class MessageHandler
     {
         $data = json_decode($payload, true);
 
-        if (!$data) {
+        if (! $data) {
             Log::channel('mqtt')->error('Invalid heartbeat payload', [
                 'topic' => $topic,
                 'payload' => $payload,
             ]);
+
             return;
         }
 
@@ -176,11 +182,12 @@ class MessageHandler
         // Extract device ID from facesluiceId
         $facesluiceId = $info['facesluiceId'] ?? null;
 
-        if (!$facesluiceId) {
+        if (! $facesluiceId) {
             Log::channel('mqtt')->error('Missing facesluiceId in heartbeat payload', [
                 'topic' => $topic,
                 'payload' => $data,
             ]);
+
             return;
         }
 
@@ -200,11 +207,12 @@ class MessageHandler
     {
         $data = json_decode($payload, true);
 
-        if (!$data) {
+        if (! $data) {
             Log::channel('mqtt')->error('Invalid basic message payload', [
                 'topic' => $topic,
                 'payload' => $payload,
             ]);
+
             return;
         }
 
@@ -212,22 +220,24 @@ class MessageHandler
         $operator = $data['operator'] ?? null;
         $info = $data['info'] ?? [];
 
-        if (!$operator) {
+        if (! $operator) {
             Log::channel('mqtt')->error('Missing operator in basic message payload', [
                 'topic' => $topic,
                 'payload' => $data,
             ]);
+
             return;
         }
 
         // Extract device ID from facesluiceId
         $facesluiceId = $info['facesluiceId'] ?? null;
 
-        if (!$facesluiceId) {
+        if (! $facesluiceId) {
             Log::channel('mqtt')->error('Missing facesluiceId in basic message payload', [
                 'topic' => $topic,
                 'payload' => $data,
             ]);
+
             return;
         }
 
@@ -256,11 +266,12 @@ class MessageHandler
     {
         $data = json_decode($payload, true);
 
-        if (!$data) {
+        if (! $data) {
             Log::channel('mqtt')->error('Invalid device message payload', [
                 'topic' => $topic,
                 'payload' => $payload,
             ]);
+
             return;
         }
 
@@ -268,10 +279,11 @@ class MessageHandler
         preg_match('/^mqtt\/face\/(\d+)$/', $topic, $matches);
         $facesluiceId = $matches[1] ?? null;
 
-        if (!$facesluiceId) {
+        if (! $facesluiceId) {
             Log::channel('mqtt')->error('Unable to parse device ID from topic', [
                 'topic' => $topic,
             ]);
+
             return;
         }
 

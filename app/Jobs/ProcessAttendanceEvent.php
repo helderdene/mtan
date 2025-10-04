@@ -10,7 +10,6 @@ use App\Models\Tenant\Employee;
 use App\Services\Tenancy\TenantDatabaseManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ProcessAttendanceEvent implements ShouldQueue
@@ -189,7 +188,7 @@ class ProcessAttendanceEvent implements ShouldQueue
             ]);
 
             // Store notification in cache for UI polling
-            $cacheKey = "attendance_notification:{$tenant->id}:" . now()->timestamp;
+            $cacheKey = "attendance_notification:{$tenant->id}:".now()->timestamp;
             $deviceName = $device->device_name ?: "Device {$device->device_id}";
             $message = "{$employee->full_name} checked in at {$deviceName} ({$recordedAt->format('H:i')})";
 

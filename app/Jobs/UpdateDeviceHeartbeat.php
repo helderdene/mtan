@@ -38,10 +38,11 @@ class UpdateDeviceHeartbeat implements ShouldQueue
                 ->where('device_id', $this->deviceId)
                 ->first();
 
-            if (!$deviceRegistry) {
+            if (! $deviceRegistry) {
                 Log::channel('mqtt')->warning('Device not found in registry for heartbeat', [
                     'facesluiceId' => $this->deviceId,
                 ]);
+
                 return;
             }
 
@@ -51,10 +52,11 @@ class UpdateDeviceHeartbeat implements ShouldQueue
                 ->where('is_active', true)
                 ->first();
 
-            if (!$tenant) {
+            if (! $tenant) {
                 Log::channel('mqtt')->warning('Tenant not found or inactive for heartbeat', [
                     'tenant_id' => $deviceRegistry->tenant_id,
                 ]);
+
                 return;
             }
 
@@ -79,11 +81,12 @@ class UpdateDeviceHeartbeat implements ShouldQueue
                 ->where('device_id', $this->deviceId)
                 ->first();
 
-            if (!$device) {
+            if (! $device) {
                 Log::channel('mqtt')->warning('Device not found in tenant database for heartbeat', [
                     'device_id' => $this->deviceId,
                     'tenant_id' => $tenant->id,
                 ]);
+
                 return;
             }
 
@@ -91,7 +94,6 @@ class UpdateDeviceHeartbeat implements ShouldQueue
             $device->update([
                 'last_heartbeat_at' => now(),
             ]);
-
 
         } catch (\Exception $e) {
             Log::channel('mqtt')->error('Failed to update device heartbeat', [

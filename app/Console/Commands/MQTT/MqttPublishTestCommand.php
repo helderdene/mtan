@@ -43,18 +43,18 @@ class MqttPublishTestCommand extends Command
         $this->newLine();
 
         try {
-            $client = new MQTTClient();
+            $client = new MQTTClient;
 
             for ($i = 1; $i <= $count; $i++) {
                 $topic = $this->buildTopic($deviceId, $eventType);
                 $payload = $this->buildPayload($deviceId, $employeeId, $eventType, $similarity);
 
                 $this->line("[$i/$count] Publishing to topic: {$topic}");
-                $this->line("Payload: " . json_encode(json_decode($payload), JSON_PRETTY_PRINT));
+                $this->line('Payload: '.json_encode(json_decode($payload), JSON_PRETTY_PRINT));
 
                 $client->publish($topic, $payload);
 
-                $this->info("✓ Message published successfully");
+                $this->info('✓ Message published successfully');
                 $this->newLine();
 
                 if ($i < $count && $delay > 0) {
@@ -68,7 +68,7 @@ class MqttPublishTestCommand extends Command
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error("Failed to publish MQTT message: " . $e->getMessage());
+            $this->error('Failed to publish MQTT message: '.$e->getMessage());
             $this->error($e->getTraceAsString());
 
             return Command::FAILURE;
@@ -98,7 +98,7 @@ class MqttPublishTestCommand extends Command
             return json_encode([
                 'device_id' => $deviceId,
                 'timestamp' => $timestamp,
-                'image_url' => '/storage/strangers/' . now()->format('Ymd_His') . '.jpg',
+                'image_url' => '/storage/strangers/'.now()->format('Ymd_His').'.jpg',
             ]);
         }
 

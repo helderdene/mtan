@@ -23,7 +23,7 @@ class DeviceFactory extends Factory
         $isExitDevice = fake()->boolean(60);
 
         return [
-            'device_id' => 'DEV-' . strtoupper(fake()->unique()->bothify('???###')),
+            'device_id' => 'DEV-'.strtoupper(fake()->unique()->bothify('???###')),
             'name' => fake()->randomElement([
                 'Main Entrance Scanner',
                 'Office Entry Device',
@@ -31,7 +31,7 @@ class DeviceFactory extends Factory
                 'Executive Floor Reader',
                 'Lobby Biometric Unit',
                 'Parking Gate Scanner',
-            ]) . ' ' . fake()->numberBetween(1, 99),
+            ]).' '.fake()->numberBetween(1, 99),
             'location' => fake()->randomElement($locations),
             'device_type' => fake()->randomElement($deviceTypes),
             'ip_address' => fake()->localIpv4(),

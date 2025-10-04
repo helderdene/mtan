@@ -81,11 +81,13 @@ class TenantResolver
         if ($row) {
             $tenant = Tenant::fromDatabase($row);
             Cache::put($cacheKey, $tenant, self::CACHE_TTL);
+
             return $tenant;
         }
 
         // Cache "not found" result to avoid repeated database queries
         Cache::put($cacheKey, self::NOT_FOUND_MARKER, self::CACHE_TTL);
+
         return null;
     }
 
@@ -114,11 +116,13 @@ class TenantResolver
         if ($row) {
             $tenant = Tenant::fromDatabase($row);
             Cache::put($cacheKey, $tenant, self::CACHE_TTL);
+
             return $tenant;
         }
 
         // Cache "not found" result to avoid repeated database queries
         Cache::put($cacheKey, self::NOT_FOUND_MARKER, self::CACHE_TTL);
+
         return null;
     }
 
@@ -173,7 +177,7 @@ class TenantResolver
      *
      * Useful for invalidating cache when tenant data is updated
      */
-    public function clearCache(string $subdomain = null, string $domain = null): void
+    public function clearCache(?string $subdomain = null, ?string $domain = null): void
     {
         if ($subdomain) {
             Cache::forget("tenant:subdomain:{$subdomain}");

@@ -27,6 +27,7 @@ class MqttConsumeCommand extends Command
     protected $description = 'Consume MQTT messages from biometric devices and process attendance events';
 
     protected MessageHandler $handler;
+
     protected bool $shouldStop = false;
 
     /**
@@ -34,10 +35,10 @@ class MqttConsumeCommand extends Command
      */
     public function handle()
     {
-        $this->handler = new MessageHandler();
+        $this->handler = new MessageHandler;
 
         $this->info('Starting MQTT consumer...');
-        $this->info('Broker: ' . config('mqtt.host') . ':' . config('mqtt.port'));
+        $this->info('Broker: '.config('mqtt.host').':'.config('mqtt.port'));
 
         $startTime = time();
         $timeout = (int) $this->option('timeout');
@@ -47,7 +48,7 @@ class MqttConsumeCommand extends Command
         pcntl_signal(SIGINT, [$this, 'handleShutdown']);
 
         try {
-            $clientId = config('mqtt.client_id') ?? 'laravel_consumer_' . uniqid();
+            $clientId = config('mqtt.client_id') ?? 'laravel_consumer_'.uniqid();
 
             // Create MQTT client
             $mqtt = new MqttClient(
@@ -57,7 +58,7 @@ class MqttConsumeCommand extends Command
             );
 
             // Configure connection options
-            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings())
+            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings)
                 ->setKeepAliveInterval(config('mqtt.keep_alive', 60))
                 ->setUsername(config('mqtt.username'))
                 ->setPassword(config('mqtt.password'));
@@ -117,7 +118,7 @@ class MqttConsumeCommand extends Command
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            $this->error('MQTT consumer error: ' . $e->getMessage());
+            $this->error('MQTT consumer error: '.$e->getMessage());
 
             return 1;
         }

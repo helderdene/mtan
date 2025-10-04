@@ -15,7 +15,7 @@ beforeEach(function () {
 
     // Define domain for tests
     $this->domain = 'mtan.test';
-    $this->adminHost = 'admin.' . $this->domain;
+    $this->adminHost = 'admin.'.$this->domain;
 
     // Create test super admin
     $this->superAdmin = SuperAdmin::factory()->create([
@@ -147,7 +147,7 @@ describe('Impersonation Exit', function () {
                 'user_id' => $this->user->id,
                 'started_at' => now()->toDateTimeString(),
                 'log_id' => $this->impersonationLog->id,
-            ]
+            ],
         ]);
     });
 
@@ -210,7 +210,7 @@ describe('Impersonation State', function () {
                 'super_admin_id' => $this->superAdmin->id,
                 'tenant_id' => $this->tenant->id,
                 'user_id' => $this->user->id,
-            ]
+            ],
         ]);
 
         expect(session('impersonating.super_admin_id'))->toBe($this->superAdmin->id);

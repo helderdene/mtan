@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 // Admin subdomain routes
 // In production, this would use admin.{yourdomain.com}
 // For testing, we use the exact domain from APP_URL
-$adminDomain = 'admin.' . parse_url(config('app.url'), PHP_URL_HOST);
+$adminDomain = 'admin.'.parse_url(config('app.url'), PHP_URL_HOST);
 
 Route::domain($adminDomain)->group(function () {
 

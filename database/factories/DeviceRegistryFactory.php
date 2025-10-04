@@ -20,7 +20,7 @@ class DeviceRegistryFactory extends Factory
         $locations = ['Main Entrance', 'Side Entrance', 'Lobby', 'Office Floor 1', 'Office Floor 2', 'Warehouse', 'Parking Gate'];
 
         return [
-            'device_id' => 'DEV-' . strtoupper(fake()->unique()->bothify('???###')),
+            'device_id' => 'DEV-'.strtoupper(fake()->unique()->bothify('???###')),
             'device_name' => fake()->randomElement([
                 'Main Entrance Scanner',
                 'Office Entry Device',
@@ -28,7 +28,7 @@ class DeviceRegistryFactory extends Factory
                 'Executive Floor Reader',
                 'Lobby Biometric Unit',
                 'Parking Gate Scanner',
-            ]) . ' ' . fake()->numberBetween(1, 99),
+            ]).' '.fake()->numberBetween(1, 99),
             'device_type' => fake()->randomElement($deviceTypes),
             'location' => fake()->randomElement($locations),
             'ip_address' => fake()->localIpv4(),

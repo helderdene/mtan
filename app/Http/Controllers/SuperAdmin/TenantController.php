@@ -91,8 +91,8 @@ class TenantController extends Controller
         $validated['max_devices'] = $validated['max_devices'] ?? $limits['max_devices'];
 
         // Generate unique tenant ID and database name
-        $validated['id'] = 'tenant_' . Str::random(16);
-        $validated['database_name'] = 'tenant_' . $validated['subdomain'];
+        $validated['id'] = 'tenant_'.Str::random(16);
+        $validated['database_name'] = 'tenant_'.$validated['subdomain'];
         $validated['database_host'] = env('DB_HOST', '127.0.0.1');
         $validated['is_active'] = $validated['is_active'] ?? true;
 
@@ -205,7 +205,7 @@ class TenantController extends Controller
         } catch (\Exception $e) {
             return redirect()
                 ->route('super-admin.tenants.show', $tenant->id)
-                ->with('error', 'Failed to provision tenant database: ' . $e->getMessage());
+                ->with('error', 'Failed to provision tenant database: '.$e->getMessage());
         }
     }
 
@@ -216,7 +216,7 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
 
-        if (!$tenant->admin_email || !$tenant->admin_password) {
+        if (! $tenant->admin_email || ! $tenant->admin_password) {
             return redirect()
                 ->route('super-admin.tenants.show', $tenant->id)
                 ->with('error', 'Admin credentials not found for this tenant.');
@@ -227,8 +227,8 @@ class TenantController extends Controller
             $baseUrl = config('app.url');
             $baseDomain = parse_url($baseUrl, PHP_URL_HOST);
             $loginUrl = $tenant->domain
-                ? 'https://' . $tenant->domain . '/login'
-                : 'http://' . $tenant->subdomain . '.' . $baseDomain . '/login';
+                ? 'https://'.$tenant->domain.'/login'
+                : 'http://'.$tenant->subdomain.'.'.$baseDomain.'/login';
 
             \Illuminate\Support\Facades\Mail::to($tenant->admin_email)->send(
                 new \App\Mail\TenantAdminCredentialsMail(
@@ -241,11 +241,11 @@ class TenantController extends Controller
 
             return redirect()
                 ->route('super-admin.tenants.show', $tenant->id)
-                ->with('success', 'Admin credentials sent to ' . $tenant->admin_email);
+                ->with('success', 'Admin credentials sent to '.$tenant->admin_email);
         } catch (\Exception $e) {
             return redirect()
                 ->route('super-admin.tenants.show', $tenant->id)
-                ->with('error', 'Failed to send credentials: ' . $e->getMessage());
+                ->with('error', 'Failed to send credentials: '.$e->getMessage());
         }
     }
 

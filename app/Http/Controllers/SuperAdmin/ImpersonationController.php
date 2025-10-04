@@ -19,14 +19,15 @@ class ImpersonationController extends Controller
     {
         // Verify super admin is active
         $superAdmin = Auth::guard('super-admin')->user();
-        if (!$superAdmin || !$superAdmin->is_active) {
+        if (! $superAdmin || ! $superAdmin->is_active) {
             Auth::guard('super-admin')->logout();
+
             return redirect()->route('super-admin.login')
                 ->with('error', 'Your account has been deactivated.');
         }
 
         // Verify tenant is active
-        if (!$tenant->is_active) {
+        if (! $tenant->is_active) {
             abort(403, 'Cannot impersonate users of inactive tenant');
         }
 
@@ -49,7 +50,7 @@ class ImpersonationController extends Controller
                 'user_id' => $user->id,
                 'started_at' => now()->toDateTimeString(),
                 'log_id' => $impersonationLog->id,
-            ]
+            ],
         ]);
 
         // Log in as the user
@@ -65,7 +66,7 @@ class ImpersonationController extends Controller
     public function exit(Request $request): RedirectResponse
     {
         // Check if currently impersonating
-        if (!session()->has('impersonating')) {
+        if (! session()->has('impersonating')) {
             return redirect('/');
         }
 
@@ -92,4 +93,3 @@ class ImpersonationController extends Controller
         return redirect("http://admin.{$request->getHost()}/dashboard");
     }
 }
-

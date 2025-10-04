@@ -2,7 +2,6 @@
 
 use App\Services\MQTT\MQTTClient;
 use Illuminate\Support\Facades\Log;
-use PhpMqtt\Client\MqttClient as BaseMqttClient;
 
 beforeEach(function () {
     // Mock MQTT broker configuration
@@ -27,7 +26,7 @@ beforeEach(function () {
 
 describe('MQTT Client', function () {
     test('can instantiate MQTT client', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         expect($client)->toBeInstanceOf(MQTTClient::class);
     });
@@ -35,8 +34,8 @@ describe('MQTT Client', function () {
     test('generates unique client ID when not provided', function () {
         config(['mqtt.client_id' => null]);
 
-        $client1 = new MQTTClient();
-        $client2 = new MQTTClient();
+        $client1 = new MQTTClient;
+        $client2 = new MQTTClient;
 
         expect($client1->getClientId())->not->toBeNull();
         expect($client2->getClientId())->not->toBeNull();
@@ -46,13 +45,13 @@ describe('MQTT Client', function () {
     test('uses configured client ID when provided', function () {
         config(['mqtt.client_id' => 'custom-client-id']);
 
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         expect($client->getClientId())->toBe('custom-client-id');
     });
 
     test('can get connection configuration', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
         $config = $client->getConnectionConfig();
 
         expect($config)->toBeArray();
@@ -69,7 +68,7 @@ describe('MQTT Client', function () {
             'mqtt.tls.client_key' => '/path/to/client.key',
         ]);
 
-        $client = new MQTTClient();
+        $client = new MQTTClient;
         $config = $client->getConnectionConfig();
 
         expect($config['tls'])->toBeTrue();
@@ -80,17 +79,17 @@ describe('MQTT Client', function () {
     test('validates required configuration on instantiation', function () {
         config(['mqtt.host' => null]);
 
-        expect(fn () => new MQTTClient())->toThrow(\InvalidArgumentException::class);
+        expect(fn () => new MQTTClient)->toThrow(\InvalidArgumentException::class);
     });
 
     test('can check if client is connected', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         expect($client->isConnected())->toBeFalse();
     });
 
     test('can get subscribed topics', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         $topics = $client->getSubscribedTopics();
 
@@ -109,7 +108,7 @@ describe('MQTT Client', function () {
             ->with('Attempting MQTT connection', \Mockery::type('array'))
             ->once();
 
-        $client = new MQTTClient();
+        $client = new MQTTClient;
         $client->logConnectionAttempt();
     });
 
@@ -122,7 +121,7 @@ describe('MQTT Client', function () {
             ->with('MQTT connection established', \Mockery::type('array'))
             ->once();
 
-        $client = new MQTTClient();
+        $client = new MQTTClient;
         $client->logConnectionSuccess();
     });
 
@@ -135,12 +134,12 @@ describe('MQTT Client', function () {
             ->with('MQTT connection failed', \Mockery::type('array'))
             ->once();
 
-        $client = new MQTTClient();
+        $client = new MQTTClient;
         $client->logConnectionFailure(new \Exception('Connection timeout'));
     });
 
     test('can get health status', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         $health = $client->getHealthStatus();
 
@@ -149,7 +148,7 @@ describe('MQTT Client', function () {
     });
 
     test('health status shows disconnected when not connected', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         $health = $client->getHealthStatus();
 
@@ -158,7 +157,7 @@ describe('MQTT Client', function () {
     });
 
     test('can set message callback', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         $callback = function ($topic, $message) {
             return true;
@@ -170,7 +169,7 @@ describe('MQTT Client', function () {
     });
 
     test('validates message callback is callable', function () {
-        $client = new MQTTClient();
+        $client = new MQTTClient;
 
         expect(fn () => $client->setMessageCallback('not-a-function'))->toThrow(\InvalidArgumentException::class);
     });

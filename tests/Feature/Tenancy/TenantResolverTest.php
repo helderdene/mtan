@@ -34,7 +34,7 @@ describe('Tenant Resolution', function () {
         ]);
 
         $request = Request::create('https://acme.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -63,7 +63,7 @@ describe('Tenant Resolution', function () {
         ]);
 
         $request = Request::create('https://attendance.beta.com/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -75,7 +75,7 @@ describe('Tenant Resolution', function () {
 
     test('returns null when tenant not found', function () {
         $request = Request::create('https://nonexistent.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -84,7 +84,7 @@ describe('Tenant Resolution', function () {
 
     test('returns null when accessing base domain without subdomain', function () {
         $request = Request::create('https://attendance.local/');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -109,7 +109,7 @@ describe('Tenant Resolution', function () {
         ]);
 
         $request = Request::create('https://inactive.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -137,7 +137,7 @@ describe('Tenant Caching', function () {
         Cache::flush();
 
         $request = Request::create('https://cachetest.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         // First resolution - should query database
         $tenant1 = $resolver->resolve($request);
@@ -177,7 +177,7 @@ describe('Tenant Caching', function () {
         Cache::flush();
 
         $request = Request::create('https://attendance.domaincache.com/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         // First resolution
         $tenant1 = $resolver->resolve($request);
@@ -202,7 +202,7 @@ describe('Tenant Caching', function () {
         Cache::flush();
 
         $request = Request::create('https://notfound.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         // First resolution - should query database
         $tenant1 = $resolver->resolve($request);
@@ -259,14 +259,14 @@ describe('Tenant Caching', function () {
         Cache::flush();
 
         $request = Request::create('https://ttltest.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
         expect($tenant)->not->toBeNull();
 
         // Verify cache has TTL (default 5 minutes = 300 seconds)
         $cacheKey = 'tenant:subdomain:ttltest';
-        $ttl = Cache::getStore()->getRedis()->ttl(config('cache.prefix') . ':' . $cacheKey);
+        $ttl = Cache::getStore()->getRedis()->ttl(config('cache.prefix').':'.$cacheKey);
 
         expect($ttl)->toBeGreaterThan(0);
         expect($ttl)->toBeLessThanOrEqual(300);
@@ -277,7 +277,7 @@ describe('Edge Cases', function () {
     test('handles www subdomain correctly', function () {
         // Should treat www.attendance.local as base domain, not subdomain
         $request = Request::create('https://www.attendance.local/');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
         expect($tenant)->toBeNull();
@@ -300,7 +300,7 @@ describe('Edge Cases', function () {
         ]);
 
         $request = Request::create('http://dev.localhost:8000/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
         expect($tenant)->not->toBeNull();
@@ -341,7 +341,7 @@ describe('Edge Cases', function () {
         ]);
 
         $request = Request::create('https://priority.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
 
@@ -367,7 +367,7 @@ describe('Edge Cases', function () {
         ]);
 
         $request = Request::create('https://CaseTest.attendance.local/dashboard');
-        $resolver = new TenantResolver();
+        $resolver = new TenantResolver;
 
         $tenant = $resolver->resolve($request);
         expect($tenant)->not->toBeNull();

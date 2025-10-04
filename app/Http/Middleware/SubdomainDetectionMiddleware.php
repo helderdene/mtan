@@ -60,6 +60,7 @@ class SubdomainDetectionMiddleware
             if ($subdomain === 'www') {
                 return null;
             }
+
             return $subdomain;
         }
 
@@ -107,7 +108,7 @@ class SubdomainDetectionMiddleware
         $appDomain = config('app.domain', 'localhost');
 
         // If no subdomain and host doesn't match app domain, it's a custom domain
-        if ($subdomain === null && !str_contains($host, $appDomain)) {
+        if ($subdomain === null && ! str_contains($host, $appDomain)) {
             return true;
         }
 

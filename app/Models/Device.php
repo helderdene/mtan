@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Device extends Model
 {
@@ -56,7 +55,7 @@ class Device extends Model
 
     public function getStatusAttribute(): string
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return 'inactive';
         }
 

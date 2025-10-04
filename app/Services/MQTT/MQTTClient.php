@@ -8,15 +8,19 @@ use Illuminate\Support\Str;
 class MQTTClient
 {
     protected ?string $clientId;
+
     protected array $config;
+
     protected bool $connected = false;
+
     protected ?int $lastActivity = null;
+
     protected $messageCallback = null;
 
     public function __construct()
     {
         $this->validateConfig();
-        $this->clientId = config('mqtt.client_id') ?? 'laravel_' . Str::random(8);
+        $this->clientId = config('mqtt.client_id') ?? 'laravel_'.Str::random(8);
         $this->config = $this->buildConnectionConfig();
     }
 
@@ -185,7 +189,7 @@ class MQTTClient
     {
         try {
             // Create a new MQTT client for publishing
-            $clientId = config('mqtt.client_id') ?? 'laravel_publisher_' . uniqid();
+            $clientId = config('mqtt.client_id') ?? 'laravel_publisher_'.uniqid();
 
             $mqtt = new \PhpMqtt\Client\MqttClient(
                 config('mqtt.host'),
@@ -194,7 +198,7 @@ class MQTTClient
             );
 
             // Configure connection settings
-            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings())
+            $connectionSettings = (new \PhpMqtt\Client\ConnectionSettings)
                 ->setKeepAliveInterval(config('mqtt.keep_alive', 60))
                 ->setUsername(config('mqtt.username'))
                 ->setPassword(config('mqtt.password'));

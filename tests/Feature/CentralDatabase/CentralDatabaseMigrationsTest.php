@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 beforeEach(function () {
     // Use central database connection for these tests
@@ -40,7 +40,7 @@ describe('Central Database Migrations', function () {
 
     test('tenants table has correct indexes', function () {
         $indexes = DB::connection('central')
-            ->select("SHOW INDEX FROM tenants");
+            ->select('SHOW INDEX FROM tenants');
 
         $indexNames = collect($indexes)->pluck('Key_name')->unique()->values()->all();
 

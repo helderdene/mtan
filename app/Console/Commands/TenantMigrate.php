@@ -33,8 +33,9 @@ class TenantMigrate extends Command
 
         if ($tenantId) {
             $tenant = Tenant::find($tenantId);
-            if (!$tenant) {
+            if (! $tenant) {
                 $this->error("Tenant with ID {$tenantId} not found.");
+
                 return 1;
             }
             $this->migrateTenant($tenant);
@@ -42,6 +43,7 @@ class TenantMigrate extends Command
             $tenants = Tenant::active()->get();
             if ($tenants->isEmpty()) {
                 $this->warn('No active tenants found.');
+
                 return 0;
             }
 
@@ -52,6 +54,7 @@ class TenantMigrate extends Command
         }
 
         $this->info('Tenant migrations completed successfully!');
+
         return 0;
     }
 

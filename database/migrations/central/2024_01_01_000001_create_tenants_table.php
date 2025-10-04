@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('database_name', 100);
             $table->string('database_host');
             $table->enum('subscription_plan', ['trial', 'basic', 'professional', 'enterprise'])
-                  ->default('trial');
+                ->default('trial');
             $table->unsignedInteger('max_employees')->default(50);
             $table->unsignedInteger('max_devices')->default(5);
             $table->json('features')->nullable();

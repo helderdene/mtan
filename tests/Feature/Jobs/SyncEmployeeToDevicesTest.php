@@ -20,7 +20,7 @@ beforeEach(function () {
     // Drop test database if it exists from previous run
     try {
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
@@ -76,7 +76,7 @@ afterEach(function () {
     // Drop test database
     try {
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );

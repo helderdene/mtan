@@ -3,13 +3,12 @@
 use App\Http\Middleware\SubdomainDetectionMiddleware;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 
 uses(RefreshDatabase::class);
 
 describe('SubdomainDetectionMiddleware', function () {
     beforeEach(function () {
-        $this->middleware = new SubdomainDetectionMiddleware();
+        $this->middleware = new SubdomainDetectionMiddleware;
     });
 
     test('detects admin subdomain', function () {
@@ -22,6 +21,7 @@ describe('SubdomainDetectionMiddleware', function () {
         $this->middleware->handle($request, function ($req) use (&$detected, &$subdomain) {
             $detected = $req->attributes->get('is_admin_subdomain');
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -39,6 +39,7 @@ describe('SubdomainDetectionMiddleware', function () {
         $this->middleware->handle($request, function ($req) use (&$detected, &$subdomain) {
             $detected = $req->attributes->get('is_admin_subdomain');
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -54,6 +55,7 @@ describe('SubdomainDetectionMiddleware', function () {
 
         $this->middleware->handle($request, function ($req) use (&$subdomain) {
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -70,6 +72,7 @@ describe('SubdomainDetectionMiddleware', function () {
         $this->middleware->handle($request, function ($req) use (&$detected, &$subdomain) {
             $detected = $req->attributes->get('is_admin_subdomain');
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -87,6 +90,7 @@ describe('SubdomainDetectionMiddleware', function () {
         $this->middleware->handle($request, function ($req) use (&$detected, &$subdomain) {
             $detected = $req->attributes->get('is_admin_subdomain');
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -104,6 +108,7 @@ describe('SubdomainDetectionMiddleware', function () {
         $this->middleware->handle($request, function ($req) use (&$subdomain, &$isCustomDomain) {
             $subdomain = $req->attributes->get('subdomain');
             $isCustomDomain = $req->attributes->get('is_custom_domain');
+
             return response('OK');
         });
 
@@ -119,6 +124,7 @@ describe('SubdomainDetectionMiddleware', function () {
 
         $this->middleware->handle($request, function ($req) use (&$subdomainType) {
             $subdomainType = $req->attributes->get('subdomain_type');
+
             return response('OK');
         });
 
@@ -133,6 +139,7 @@ describe('SubdomainDetectionMiddleware', function () {
 
         $this->middleware->handle($request, function ($req) use (&$subdomainType) {
             $subdomainType = $req->attributes->get('subdomain_type');
+
             return response('OK');
         });
 
@@ -147,6 +154,7 @@ describe('SubdomainDetectionMiddleware', function () {
 
         $this->middleware->handle($request, function ($req) use (&$subdomain) {
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 
@@ -161,6 +169,7 @@ describe('SubdomainDetectionMiddleware', function () {
 
         $this->middleware->handle($request, function ($req) use (&$subdomain) {
             $subdomain = $req->attributes->get('subdomain');
+
             return response('OK');
         });
 

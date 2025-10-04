@@ -30,7 +30,7 @@ beforeEach(function () {
 
 afterEach(function () {
     // Clean up test tenant database
-    $manager = new TenantDatabaseManager();
+    $manager = new TenantDatabaseManager;
     try {
         $manager->dropDatabase('tenant_test_550e8400');
     } catch (\Exception $e) {
@@ -53,14 +53,14 @@ describe('Database Creation', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $result = $manager->createDatabase($tenant);
 
         expect($result)->toBeTrue();
 
         // Verify database exists by connecting to it
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
@@ -84,7 +84,7 @@ describe('Database Creation', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Create database first time
         $result1 = $manager->createDatabase($tenant);
@@ -109,19 +109,19 @@ describe('Database Creation', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $manager->createDatabase($tenant);
 
         // Check database charset and collation
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
         $stmt = $pdo->prepare(
-            "SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME
+            'SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME
              FROM INFORMATION_SCHEMA.SCHEMATA
-             WHERE SCHEMA_NAME = ?"
+             WHERE SCHEMA_NAME = ?'
         );
         $stmt->execute(['tenant_test_550e8400']);
         $result = $stmt->fetchAll(\PDO::FETCH_OBJ);
@@ -147,14 +147,14 @@ describe('Database Dropping', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Create database first
         $manager->createDatabase($tenant);
 
         // Verify it exists
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
@@ -175,7 +175,7 @@ describe('Database Dropping', function () {
     });
 
     test('does not fail when dropping non-existent database', function () {
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Drop database that doesn't exist
         $result = $manager->dropDatabase('tenant_nonexistent_12345');
@@ -200,7 +200,7 @@ describe('Connection Management', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Create database
         $manager->createDatabase($tenant);
@@ -229,7 +229,7 @@ describe('Connection Management', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $manager->createDatabase($tenant);
         $manager->setupTenantConnection($tenant);
 
@@ -258,7 +258,7 @@ describe('Migration Running', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Create database and setup connection
         $manager->createDatabase($tenant);
@@ -290,7 +290,7 @@ describe('Migration Running', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $manager->createDatabase($tenant);
         $manager->setupTenantConnection($tenant);
         $manager->runMigrations($tenant);
@@ -317,7 +317,7 @@ describe('Provisioning Workflow', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // Full provisioning workflow
         $result = $manager->provisionTenant($tenant);
@@ -325,7 +325,7 @@ describe('Provisioning Workflow', function () {
 
         // Verify database exists
         $pdo = new \PDO(
-            'mysql:host=' . env('DB_HOST', '127.0.0.1'),
+            'mysql:host='.env('DB_HOST', '127.0.0.1'),
             env('DB_USERNAME', 'root'),
             env('DB_PASSWORD', '')
         );
@@ -356,7 +356,7 @@ describe('Provisioning Workflow', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
 
         // First provisioning should succeed
         $result1 = $manager->provisionTenant($tenant);
@@ -384,7 +384,7 @@ describe('Edge Cases', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $result = $manager->createDatabase($tenant);
 
         expect($result)->toBeTrue();
@@ -404,7 +404,7 @@ describe('Edge Cases', function () {
             is_active: true,
         );
 
-        $manager = new TenantDatabaseManager();
+        $manager = new TenantDatabaseManager;
         $manager->createDatabase($tenant);
 
         // Verify naming convention: tenant_*

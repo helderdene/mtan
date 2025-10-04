@@ -62,7 +62,7 @@ class TenantCreateCommand extends Command
         $limits = $this->getPlanLimits($plan);
 
         // Generate tenant ID
-        $tenantId = 'tenant_' . Str::uuid();
+        $tenantId = 'tenant_'.Str::uuid();
 
         // Create tenant
         $tenant = Tenant::create([
@@ -70,7 +70,7 @@ class TenantCreateCommand extends Command
             'company_name' => $companyName,
             'subdomain' => $subdomain,
             'domain' => $domain,
-            'database_name' => 'tenant_' . str_replace('-', '_', $subdomain),
+            'database_name' => 'tenant_'.str_replace('-', '_', $subdomain),
             'database_host' => env('DB_HOST', '127.0.0.1'),
             'subscription_plan' => $plan,
             'max_employees' => $limits['max_employees'],
@@ -95,7 +95,7 @@ class TenantCreateCommand extends Command
         );
 
         $this->newLine();
-        $this->comment('Next step: Run "php artisan tenant:provision ' . $tenant->id . '" to provision the tenant database');
+        $this->comment('Next step: Run "php artisan tenant:provision '.$tenant->id.'" to provision the tenant database');
 
         return 0;
     }

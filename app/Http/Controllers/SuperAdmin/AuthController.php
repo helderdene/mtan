@@ -37,7 +37,7 @@ class AuthController extends Controller
             $superAdmin = Auth::guard('super-admin')->user();
 
             // Check if super admin is active
-            if (!$superAdmin->is_active) {
+            if (! $superAdmin->is_active) {
                 Auth::guard('super-admin')->logout();
 
                 throw ValidationException::withMessages([
