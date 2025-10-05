@@ -42,8 +42,8 @@ beforeEach(function () {
         '--force' => true,
     ]);
 
-    // Create test user
-    $this->user = User::factory()->create();
+    // Create test user with tenant_admin role
+    $this->user = User::factory()->create(['role' => 'tenant_admin']);
 
     // Create test department
     $this->department = Department::on('tenant')->create([

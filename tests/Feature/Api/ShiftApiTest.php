@@ -46,7 +46,7 @@ beforeEach(function () {
     $manager->setupTenantConnection($tenantDto);
 
     // Create and authenticate user
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => 'tenant_admin']);
     Sanctum::actingAs($user, ['*']);
 
     $this->tenant = $tenant;

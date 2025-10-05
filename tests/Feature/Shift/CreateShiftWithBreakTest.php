@@ -56,7 +56,7 @@ afterEach(function () {
 
 describe('Shift Creation with Valid Breaks', function () {
     test('creates shift with valid break times', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -80,7 +80,7 @@ describe('Shift Creation with Valid Breaks', function () {
     });
 
     test('creates shift without break times (both null)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -99,7 +99,7 @@ describe('Shift Creation with Valid Breaks', function () {
     });
 
     test('creates overnight shift with valid break times', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Night Shift',
@@ -120,7 +120,7 @@ describe('Shift Creation with Valid Breaks', function () {
     });
 
     test('creates shift with minimum break duration (1 minute)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -137,7 +137,7 @@ describe('Shift Creation with Valid Breaks', function () {
     });
 
     test('creates shift with maximum break duration (2 hours)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -156,7 +156,7 @@ describe('Shift Creation with Valid Breaks', function () {
 
 describe('Shift Creation with Invalid Breaks', function () {
     test('rejects shift when break_start is missing but break_end is provided', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -172,7 +172,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break_end is missing but break_start is provided', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -188,7 +188,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break is outside shift hours (before start)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -205,7 +205,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break is outside shift hours (after end)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -222,7 +222,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break_start is after break_end', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -239,7 +239,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break duration is 0 minutes', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -256,7 +256,7 @@ describe('Shift Creation with Invalid Breaks', function () {
     });
 
     test('rejects shift when break duration exceeds 2 hours', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Morning Shift',
@@ -275,7 +275,7 @@ describe('Shift Creation with Invalid Breaks', function () {
 
 describe('Overnight Shift Break Validation', function () {
     test('accepts break within overnight shift (before midnight)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Night Shift',
@@ -292,7 +292,7 @@ describe('Overnight Shift Break Validation', function () {
     });
 
     test('accepts break within overnight shift (after midnight)', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Night Shift',
@@ -309,7 +309,7 @@ describe('Overnight Shift Break Validation', function () {
     });
 
     test('rejects break outside overnight shift hours', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
 
         $response = $this->actingAs($user)->post(route('shifts.store'), [
             'name' => 'Night Shift',

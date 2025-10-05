@@ -56,7 +56,7 @@ afterEach(function () {
 
 describe('Shift Update with Valid Breaks', function () {
     test('updates shift with valid break times', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create([
             'name' => 'Morning Shift',
             'start_time' => '09:00:00',
@@ -85,7 +85,7 @@ describe('Shift Update with Valid Breaks', function () {
     });
 
     test('updates shift from no breaks to with breaks', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create([
             'break_start' => null,
             'break_end' => null,
@@ -110,7 +110,7 @@ describe('Shift Update with Valid Breaks', function () {
     });
 
     test('updates shift from with breaks to no breaks', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->withBreak()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -130,7 +130,7 @@ describe('Shift Update with Valid Breaks', function () {
     });
 
     test('updates break times while keeping shift hours the same', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->withBreak('12:00:00', '13:00:00')->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -154,7 +154,7 @@ describe('Shift Update with Valid Breaks', function () {
 
 describe('Shift Update with Invalid Breaks', function () {
     test('rejects update when break_start is missing but break_end is provided', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -170,7 +170,7 @@ describe('Shift Update with Invalid Breaks', function () {
     });
 
     test('rejects update when break_end is missing but break_start is provided', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -186,7 +186,7 @@ describe('Shift Update with Invalid Breaks', function () {
     });
 
     test('rejects update when break is outside shift hours', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -203,7 +203,7 @@ describe('Shift Update with Invalid Breaks', function () {
     });
 
     test('rejects update when break_start is after break_end', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -220,7 +220,7 @@ describe('Shift Update with Invalid Breaks', function () {
     });
 
     test('rejects update when break duration is 0 minutes', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -237,7 +237,7 @@ describe('Shift Update with Invalid Breaks', function () {
     });
 
     test('rejects update when break duration exceeds 2 hours', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
@@ -256,7 +256,7 @@ describe('Shift Update with Invalid Breaks', function () {
 
 describe('Overnight Shift Update', function () {
     test('updates to overnight shift with valid break', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->create([
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',
@@ -283,7 +283,7 @@ describe('Overnight Shift Update', function () {
     });
 
     test('rejects update when overnight shift break is outside valid hours', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'tenant_admin']);
         $shift = Shift::factory()->overnight()->create();
 
         $response = $this->actingAs($user)->put(route('shifts.update', $shift), [
