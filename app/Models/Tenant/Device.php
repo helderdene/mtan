@@ -13,6 +13,19 @@ class Device extends Model
 
     protected $connection = 'tenant';
 
+    /**
+     * Get the database connection for the model.
+     */
+    public function getConnectionName()
+    {
+        // Use default connection in testing environment
+        if (app()->bound('env') && app()->environment('testing')) {
+            return config('database.default');
+        }
+
+        return $this->connection;
+    }
+
     protected $fillable = [
         'device_id',
         'name',

@@ -37,6 +37,12 @@ class DeviceFactory extends Factory
                 'Warehouse',
                 'Parking Gate',
             ]),
+            'device_type' => fake()->randomElement([
+                'biometric',
+                'rfid',
+                'facial_recognition',
+                'fingerprint',
+            ]),
             'ip_address' => fake()->localIpv4(),
             'capacity' => fake()->numberBetween(1000, 50000),
             'is_active' => fake()->boolean(85),

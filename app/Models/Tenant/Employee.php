@@ -22,7 +22,7 @@ class Employee extends Model
     public function getConnectionName()
     {
         // Use default connection in testing environment
-        if (app()->environment('testing')) {
+        if (app()->bound('env') && app()->environment('testing')) {
             return config('database.default');
         }
 
@@ -66,7 +66,7 @@ class Employee extends Model
         });
 
         // Skip device sync in testing environment
-        if (app()->environment('testing')) {
+        if (app()->bound('env') && app()->environment('testing')) {
             return;
         }
 

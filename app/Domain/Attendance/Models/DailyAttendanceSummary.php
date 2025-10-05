@@ -2,6 +2,7 @@
 
 namespace App\Domain\Attendance\Models;
 
+use App\Models\Tenant\AttendanceRecord;
 use App\Models\Tenant\Employee;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,9 @@ class DailyAttendanceSummary extends Model
 
     protected $casts = [
         'date' => 'date',
+        'total_work_minutes' => 'integer',
+        'total_break_minutes' => 'integer',
+        'overtime_minutes' => 'integer',
         'is_complete' => 'boolean',
     ];
 
