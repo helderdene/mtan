@@ -27,15 +27,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.7 Implement `calculateForDate()` method that aggregates all calculations
   - [x] 2.8 Verify all calculation tests pass including edge cases
 
-- [ ] 3. Real-time Summary Updates
-  - [ ] 3.1 Write tests for real-time summary updates on attendance events
-  - [ ] 3.2 Implement `updateSummaryFromEvent()` method in SummaryCalculator
-  - [ ] 3.3 Add upsert logic (create if missing, update if exists) for daily summaries
-  - [ ] 3.4 Integrate SummaryCalculator into `ProcessAttendanceEvent` job
-  - [ ] 3.5 Add summary update after attendance record creation
-  - [ ] 3.6 Handle incomplete days (employee still checked in) by setting `is_complete = false`
-  - [ ] 3.7 Test real-time updates with various attendance scenarios
-  - [ ] 3.8 Verify all integration tests pass
+- [x] 3. Real-time Summary Updates
+  - [x] 3.1 Write tests for real-time summary updates on attendance events
+  - [x] 3.2 Implement `updateSummaryFromEvent()` method in SummaryCalculator
+  - [x] 3.3 Add upsert logic (create if missing, update if exists) for daily summaries
+  - [x] 3.4 Integrate SummaryCalculator into `ProcessAttendanceEvent` job
+  - [x] 3.5 Add summary update after attendance record creation
+  - [x] 3.6 Handle incomplete days (employee still checked in) by setting `is_complete = false`
+  - [x] 3.7 Test real-time updates with various attendance scenarios
+  - [x] 3.8 Verify all integration tests pass
 
 - [ ] 4. Bulk Recalculation Support
   - [ ] 4.1 Write tests for bulk recalculation (single employee, multiple employees, date ranges)
