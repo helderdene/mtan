@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // Load web routes (includes auth.php)
             Route::middleware('web')->group(base_path('routes/web.php'));
+
+            // Load API routes
+            Route::prefix('api')
+                ->middleware('api')
+                ->group(base_path('routes/api.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -37,7 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'super_admin' => \App\Http\Middleware\RequiresSuperAdmin::class,
+            'tenant_admin' => \App\Http\Middleware\RequiresTenantAdmin::class,
+            'tenant_access' => \App\Http\Middleware\EnsureTenantAccess::class,
             'subdomain.detection' => \App\Http\Middleware\SubdomainDetectionMiddleware::class,
             'auth' => \App\Http\Middleware\Authenticate::class,
         ]);

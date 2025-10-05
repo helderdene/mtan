@@ -17,8 +17,12 @@ return new class extends Migration
         }
 
         Schema::connection('central')->table('tenants', function (Blueprint $table) {
-            $table->string('admin_email')->nullable()->after('domain');
-            $table->string('admin_password')->nullable()->after('admin_email');
+            if (! Schema::connection('central')->hasColumn('tenants', 'admin_email')) {
+                $table->string('admin_email')->nullable()->after('domain');
+            }
+            if (! Schema::connection('central')->hasColumn('tenants', 'admin_password')) {
+                $table->string('admin_password')->nullable()->after('admin_email');
+            }
         });
     }
 

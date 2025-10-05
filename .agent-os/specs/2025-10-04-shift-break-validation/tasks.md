@@ -9,21 +9,21 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 1: Backend Validation (Priority: High)
 
-- [ ] **Task 1.1: Create BreakWithinShiftHours validation rule**
+- [x] **Task 1.1: Create BreakWithinShiftHours validation rule**
   - File: `app/Rules/BreakWithinShiftHours.php`
   - Implement validation logic for standard shifts
   - Implement validation logic for overnight shifts
   - Add clear error messages with shift time context
   - Estimated time: 1 hour
 
-- [ ] **Task 1.2: Create BreakDurationValid validation rule**
+- [x] **Task 1.2: Create BreakDurationValid validation rule**
   - File: `app/Rules/BreakDurationValid.php`
   - Validate minimum break duration (1 minute)
   - Validate maximum break duration (2 hours)
   - Add duration-specific error messages
   - Estimated time: 45 minutes
 
-- [ ] **Task 1.3: Create StoreShiftRequest form request**
+- [x] **Task 1.3: Create StoreShiftRequest form request**
   - File: `app/Http/Requests/StoreShiftRequest.php`
   - Define validation rules for all shift fields
   - Apply break validation rules
@@ -31,13 +31,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Add `required_with` constraint for break completeness
   - Estimated time: 1 hour
 
-- [ ] **Task 1.4: Create UpdateShiftRequest form request**
+- [x] **Task 1.4: Create UpdateShiftRequest form request**
   - File: `app/Http/Requests/UpdateShiftRequest.php`
   - Inherit/duplicate validation logic from StoreShiftRequest
   - Ensure consistent validation behavior
   - Estimated time: 30 minutes
 
-- [ ] **Task 1.5: Write unit tests for BreakWithinShiftHours rule**
+- [x] **Task 1.5: Write unit tests for BreakWithinShiftHours rule**
   - File: `tests/Unit/Rules/BreakWithinShiftHoursTest.php`
   - Test standard shift validation (pass cases)
   - Test standard shift validation (fail cases)
@@ -46,14 +46,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Test edge cases (midnight, same time, null values)
   - Estimated time: 1.5 hours
 
-- [ ] **Task 1.6: Write unit tests for BreakDurationValid rule**
+- [x] **Task 1.6: Write unit tests for BreakDurationValid rule**
   - File: `tests/Unit/Rules/BreakDurationValidTest.php`
   - Test valid durations (1 minute to 2 hours)
   - Test invalid durations (< 1 minute, > 2 hours)
   - Test edge cases (exactly 1 minute, exactly 2 hours)
   - Estimated time: 1 hour
 
-- [ ] **Task 1.7: Write feature tests for shift creation with breaks**
+- [x] **Task 1.7: Write feature tests for shift creation with breaks**
   - File: `tests/Feature/Shift/CreateShiftWithBreakTest.php`
   - Test successful creation with valid breaks
   - Test rejection with invalid breaks
@@ -61,7 +61,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Test all validation error scenarios
   - Estimated time: 2 hours
 
-- [ ] **Task 1.8: Write feature tests for shift editing with breaks**
+- [x] **Task 1.8: Write feature tests for shift editing with breaks**
   - File: `tests/Feature/Shift/UpdateShiftWithBreakTest.php`
   - Test successful update with valid breaks
   - Test update from no breaks to with breaks
@@ -71,7 +71,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 2: Frontend Validation (Priority: High)
 
-- [ ] **Task 2.1: Create useShiftBreakValidation composable**
+- [x] **Task 2.1: Create useShiftBreakValidation composable**
   - File: `resources/js/composables/useShiftBreakValidation.ts`
   - Implement all validation rules matching backend logic
   - Create reactive error state management
@@ -79,40 +79,25 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Add helper functions for time parsing and comparison
   - Estimated time: 2.5 hours
 
-- [ ] **Task 2.2: Update CreateShift.vue component**
-  - File: `resources/js/pages/Shifts/CreateShift.vue`
+- [x] **Task 2.2: Update Form.vue component (handles both create and edit)**
+  - File: `resources/js/pages/shifts/Form.vue`
   - Integrate useShiftBreakValidation composable
-  - Add break time input fields (if not already present)
   - Add real-time validation on blur/input events
   - Display validation errors below input fields
   - Style error states (red borders, error text)
-  - Disable submit button when validation fails
+  - Prevent submit when validation fails
   - Estimated time: 2 hours
 
-- [ ] **Task 2.3: Update EditShift.vue component**
-  - File: `resources/js/pages/Shifts/EditShift.vue`
-  - Integrate useShiftBreakValidation composable
-  - Ensure validation works with pre-filled data
-  - Handle transition from no breaks to with breaks
-  - Handle transition from with breaks to no breaks
+- [x] **Task 2.3: Add visual error indicators and tooltips**
+  - Updated input field styling for error states
+  - Added error message components with icons
+  - Added shift type indicator (overnight vs standard)
+  - Added help text explaining break time constraints
   - Estimated time: 1.5 hours
-
-- [ ] **Task 2.4: Add visual error indicators**
-  - Update input field styling for error states
-  - Add error message components
-  - Ensure accessibility (ARIA labels, color contrast)
-  - Test with keyboard navigation
-  - Estimated time: 1 hour
-
-- [ ] **Task 2.5: Add optional break time tooltips/help text**
-  - Add help text explaining break time constraints
-  - Add tooltip on shift hours showing valid break range
-  - Add example valid break configurations
-  - Estimated time: 1 hour
 
 ### Phase 3: API Implementation (Priority: Medium)
 
-- [ ] **Task 3.1: Create API ShiftController**
+- [x] **Task 3.1: Create API ShiftController**
   - File: `app/Http/Controllers/Api/V1/ShiftController.php`
   - Implement index() method (list shifts)
   - Implement store() method (create shift)
@@ -122,21 +107,21 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - Apply StoreShiftRequest/UpdateShiftRequest validation
   - Estimated time: 2 hours
 
-- [ ] **Task 3.2: Create ShiftResource for API responses**
+- [x] **Task 3.2: Create ShiftResource for API responses**
   - File: `app/Http/Resources/ShiftResource.php`
   - Define resource transformation
   - Add computed fields (break_duration_minutes, is_overnight)
   - Format timestamps as ISO 8601
   - Estimated time: 45 minutes
 
-- [ ] **Task 3.3: Add API routes**
+- [x] **Task 3.3: Add API routes**
   - File: `routes/api.php`
   - Register shift resource routes
   - Apply authentication middleware
   - Apply rate limiting middleware
   - Estimated time: 30 minutes
 
-- [ ] **Task 3.4: Write API feature tests**
+- [x] **Task 3.4: Write API feature tests**
   - File: `tests/Feature/Api/ShiftApiTest.php`
   - Test all CRUD operations
   - Test validation error responses

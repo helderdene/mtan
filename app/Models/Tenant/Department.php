@@ -24,4 +24,12 @@ class Department extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    /**
+     * Create a new factory instance for the model
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\DepartmentFactory::new();
+    }
 }

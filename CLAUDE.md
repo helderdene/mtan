@@ -125,14 +125,268 @@ The system processes biometric attendance events from devices via MQTT:
 
 ### Smart Direction Detection
 
-The system automatically determines check-in/check-out direction using:
-- **Last Record Analysis**: Previous direction determines likely next direction
-- **Shift Timing**: Proximity to shift start/end/break times
-- **Historical Patterns**: Employee's typical check-in/out times from last 30 days
-- **Work Duration**: Minimum time between check-in and check-out
-- **Confidence Scoring**: Multi-factor weighted scoring (0-100) for each possible direction
+The system automatically determines attendance direction (check-in, check-out, break-start, break-end) using the `DirectionDetector` service with a multi-factor weighted scoring algorithm:
+
+**Scoring Factors (weights - total 100 points):**
+
+1. **Last Record Analysis (30%)**: Logical transitions based on previous direction
+   - After check-in → favor check-out or break-start (100 points)
+   - After check-out → favor check-in (100 points)
+   - After break-start → favor break-end (100 points)
+   - After break-end → favor check-out (100 points)
+
+2. **Shift Timing Proximity (35%)**: Time-based scoring relative to shift schedule
+   - Within 30 min of shift start → favor check-in
+   - Within 30 min of shift end → favor check-out
+   - Within 15 min of break start → favor break-start
+   - Within 15 min of break end → favor break-end
+
+3. **Work Duration (15%)**: Realistic work/break duration validation
+   - < 30 min since check-in → penalize check-out (0 points)
+   - ≥ 4 hours since check-in → favor check-out (100 points)
+   - 1-120 min since break-start → favor break-end (100 points)
+
+4. **Historical Pattern Analysis (20%)**: Employee's typical check-in/out times from last 30 days
+   - **Within 1σ (68% of data)**: 20 points - Very consistent with pattern
+   - **Within 2σ (95% of data)**: 15 points - Consistent with pattern
+   - **Within 3σ (99.7% of data)**: 10 points - Acceptable variation
+   - **Outside 3σ**: 5 points - Unusual for this employee
+   - **Unreliable pattern (< 7 records)**: 10 points - Neutral score for new employees
+   - **Caching**: Patterns cached for 24 hours, invalidated on new attendance records
+   - **Performance**: < 100ms for calculation, < 5ms for cached retrieval
+
+**Usage Example:**
+```php
+use App\Domain\Attendance\Services\DirectionDetector;
+use Carbon\Carbon;
+
+$detector = new DirectionDetector();
+$employee = Employee::find(1);
+$shift = $employee->current_shift;
+$timestamp = Carbon::parse('2025-10-05 09:05:00');
+
+$result = $detector->detect($employee, $timestamp, $shift);
+
+// $result->direction: 'check-in' | 'check-out' | 'break-start' | 'break-end'
+// $result->confidence: 0-100 integer (85 = high confidence)
+// $result->getConfidenceLevel(): 'high' | 'medium' | 'low'
+// $result->reason: "High confidence: Near shift start (09:00), first record of day"
+// $result->scores: Array of detailed score breakdown
+```
+
+**Overnight Shift Support:**
+The detector automatically handles shifts crossing midnight (e.g., 22:00-06:00) by comparing timestamp dates and adjusting shift boundaries accordingly.
+
+**Edge Cases:**
+- No shift assigned: Uses fallback time-of-day logic only
+- No previous records: Strongly favors check-in (first record always check-in)
+- Multiple same-direction records: Suggests opposite direction
+- Events far from shift: Lower confidence but still returns best guess
 
 This eliminates the need for separate entry/exit devices or manual direction selection.
+
+### Shift Override System
+
+The system supports flexible shift schedule modifications through the `OverrideService`, enabling company-wide holidays, employee-specific off-days, half-day shifts, and custom shift times.
+
+**Override Types:**
+1. **holiday** - Company-wide holiday (no work required)
+2. **off-day** - Employee-specific day off
+3. **half-day** - Modified shift with custom start/end times
+4. **custom-shift** - One-time shift time adjustment
+
+**Priority-Based Resolution:**
+When multiple overrides exist for the same date, the system uses this priority order:
+
+1. **Employee-specific shift override** (highest priority)
+   - Targets specific employee + shift combination
+   - Example: John's morning shift on Dec 25th is a half-day
+
+2. **Employee-specific off-day**
+   - Targets employee without specific shift
+   - Example: Jane has personal day on Nov 15th (applies to all her shifts)
+
+3. **Company-wide shift override** (lowest priority)
+   - Targets shift without specific employee
+   - Example: All morning shifts are holidays on Dec 25th
+
+**Database Schema:**
+```sql
+shift_overrides
+├── shift_id (nullable)           -- NULL = applies to all shifts
+├── employee_id (nullable)         -- NULL = applies to all employees
+├── override_date                  -- The date being overridden
+├── type                           -- holiday | off-day | half-day | custom-shift
+├── custom_start_time (nullable)   -- For half-day/custom-shift
+├── custom_end_time (nullable)     -- For half-day/custom-shift
+└── reason (nullable)              -- Optional explanation
+```
+
+**Key Services & DTOs:**
+
+```php
+// OverrideService - Main service for override management
+use App\Domain\Shift\Services\OverrideService;
+use Carbon\Carbon;
+
+$overrideService = app(OverrideService::class);
+
+// 1. Get active override for date/shift/employee
+$override = $overrideService->getActiveOverride($date, $shift, $employee);
+
+// 2. Check if work is required (false for holidays/off-days)
+$workRequired = $overrideService->isWorkRequired($date, $employee);
+
+// 3. Get effective shift times (null if no work required)
+$effectiveShift = $overrideService->getEffectiveShiftTimes($date, $shift, $employee);
+
+if ($effectiveShift) {
+    echo $effectiveShift->startTime;  // Carbon instance
+    echo $effectiveShift->endTime;    // Carbon instance
+    echo $effectiveShift->isModified; // bool - true if override applied
+
+    // Utility methods
+    $duration = $effectiveShift->getDurationMinutes();
+    $isNearStart = $effectiveShift->isNearStart($timestamp, 30); // Within 30 min
+    $isWithinShift = $effectiveShift->isWithinShift($timestamp);
+}
+```
+
+**EffectiveShift DTO:**
+```php
+use App\Domain\Shift\DTOs\EffectiveShift;
+
+// Create from regular shift
+$effectiveShift = EffectiveShift::fromShift($shift, $date);
+
+// Create from override
+$effectiveShift = EffectiveShift::fromOverride($override, $shift, $date);
+
+// Properties
+$effectiveShift->startTime;      // Carbon - shift start time for this date
+$effectiveShift->endTime;        // Carbon - shift end time for this date
+$effectiveShift->isModified;     // bool - true if override changed times
+$effectiveShift->override;       // ?ShiftOverride - the override applied
+$effectiveShift->originalShift;  // ?Shift - original shift definition
+```
+
+**Caching Strategy:**
+- Overrides cached for 24 hours per date/shift/employee combination
+- Cache keys: `override:{date}:{shift_id}:{employee_id}`
+- Automatic invalidation on override create/update/delete
+- Tenant-isolated keys (when multi-tenancy implemented)
+
+**Integration with Direction Detection:**
+The `DirectionDetector` automatically integrates override checks:
+```php
+// Before direction detection, check for overrides
+$override = $this->overrideService->getActiveOverride($date, $shift, $employee);
+
+if ($override && in_array($override->type, ['holiday', 'off-day'])) {
+    Log::warning("Attendance event on {$override->type}", [...]);
+    // Direction still detected but with reduced confidence (<= 50%)
+}
+
+// Use effective shift times for proximity scoring
+$effectiveShift = $this->overrideService->getEffectiveShiftTimes($date, $shift, $employee);
+$shiftScore = $this->calculateShiftTimingScore($timestamp, $effectiveShift);
+```
+
+**API Endpoints:**
+```
+GET    /api/v1/shift-overrides              # List with filters
+POST   /api/v1/shift-overrides              # Create override
+GET    /api/v1/shift-overrides/{id}         # Show override
+PATCH  /api/v1/shift-overrides/{id}         # Update override
+DELETE /api/v1/shift-overrides/{id}         # Delete override
+```
+
+**Query Filters:**
+- `date` - Exact date match
+- `from_date` / `to_date` - Date range
+- `shift_id` - Filter by shift
+- `employee_id` - Filter by employee
+- `type` - Filter by override type
+- `company_wide=true` - Only company-wide overrides (null employee_id)
+
+**Usage Examples:**
+
+```php
+// Example 1: Company-wide holiday
+ShiftOverride::create([
+    'shift_id' => null,          // All shifts
+    'employee_id' => null,       // All employees
+    'override_date' => '2025-12-25',
+    'type' => 'holiday',
+    'reason' => 'Christmas Day'
+]);
+
+// Example 2: Employee-specific off-day
+ShiftOverride::create([
+    'shift_id' => null,          // All shifts for this employee
+    'employee_id' => 123,
+    'override_date' => '2025-11-15',
+    'type' => 'off-day',
+    'reason' => 'Personal day'
+]);
+
+// Example 3: Half-day shift
+ShiftOverride::create([
+    'shift_id' => 1,             // Specific shift
+    'employee_id' => 456,        // Specific employee
+    'override_date' => '2025-11-20',
+    'type' => 'half-day',
+    'custom_start_time' => '09:00:00',
+    'custom_end_time' => '13:00:00',
+    'reason' => 'Medical appointment'
+]);
+
+// Example 4: Custom shift for maintenance
+ShiftOverride::create([
+    'shift_id' => 2,
+    'employee_id' => null,       // All employees on this shift
+    'override_date' => '2025-12-01',
+    'type' => 'custom-shift',
+    'custom_start_time' => '10:00:00',
+    'custom_end_time' => '18:00:00',
+    'reason' => 'Office maintenance - delayed start'
+]);
+```
+
+**Testing Overrides:**
+```php
+// Test override resolution priority
+$employee = Employee::factory()->create();
+$shift = Shift::factory()->create();
+
+// Company-wide holiday
+$companyOverride = ShiftOverride::factory()->holiday()->create([
+    'override_date' => '2025-12-25',
+    'shift_id' => $shift->id,
+]);
+
+// Employee-specific override should win
+$employeeOverride = ShiftOverride::factory()->halfDay()->create([
+    'override_date' => '2025-12-25',
+    'shift_id' => $shift->id,
+    'employee_id' => $employee->id,
+]);
+
+$active = $overrideService->getActiveOverride(
+    Carbon::parse('2025-12-25'),
+    $shift,
+    $employee
+);
+
+expect($active->id)->toBe($employeeOverride->id); // Employee override wins
+```
+
+**Important Notes:**
+- Always use `whereDate()` for date queries (not `where()`) due to Carbon casting
+- Override cache automatically invalidated on CRUD operations
+- Attendance events on holidays/off-days are logged with warnings
+- Direction detection still functions on override dates but with reduced confidence
+- Half-day/custom-shift overrides seamlessly modify shift times for all attendance logic
 
 ### Full-Stack Data Flow (Inertia.js)
 

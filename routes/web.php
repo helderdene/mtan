@@ -35,8 +35,8 @@ Route::get('dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Employee Management
-Route::middleware(['auth', 'verified'])->group(function () {
+// Employee Management - Admin Routes
+Route::middleware(['auth', 'verified', 'tenant_admin'])->group(function () {
     Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
 
     // Employee Device Sync

@@ -12,6 +12,14 @@ class Shift extends Model
 
     protected $connection = 'tenant';
 
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\ShiftFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'start_time',

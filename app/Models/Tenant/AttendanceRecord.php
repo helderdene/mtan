@@ -18,6 +18,8 @@ class AttendanceRecord extends Model
         'recorded_at',
         'direction',
         'recognition_score',
+        'confidence_score',
+        'detection_reason',
         'record_id',
         'person_name',
         'device_name',
@@ -30,6 +32,7 @@ class AttendanceRecord extends Model
     protected $casts = [
         'recorded_at' => 'datetime',
         'recognition_score' => 'decimal:4',
+        'confidence_score' => 'integer',
         'temperature' => 'decimal:1',
         'mask_status' => 'boolean',
     ];
@@ -100,5 +103,13 @@ class AttendanceRecord extends Model
         // For individual records, we can't calculate total hours
         // This should be calculated from daily summaries
         return null;
+    }
+
+    /**
+     * Create a new factory instance for the model
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\AttendanceRecordFactory::new();
     }
 }

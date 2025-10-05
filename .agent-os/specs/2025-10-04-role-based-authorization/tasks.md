@@ -3,76 +3,76 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/2025-10-04-role-based-authorization/spec.md
 
 > Created: 2025-10-04
-> Status: Ready for Implementation
+> Status: In Progress (Phases 1-4, 7 Complete)
 
 ## Tasks
 
 ### Phase 1: Database Setup
 
-- [ ] **Task 1.1**: Create migration to add `role` enum column to `users` table
+- [x] **Task 1.1**: Create migration to add `role` enum column to `users` table
   - Column: `role` enum('super_admin', 'tenant_admin', 'tenant_user')
   - Default value: 'tenant_user'
   - Position: After `email` column
   - Index: Add index on `role` column
 
-- [ ] **Task 1.2**: Create migration to add `tenant_id` foreign key to `users` table (if not exists)
+- [x] **Task 1.2**: Create migration to add `tenant_id` foreign key to `users` table (if not exists)
   - Column: `tenant_id` (nullable, foreign key to `tenants.id`)
   - Constraint: Cascade on delete
   - Index: Add index on `tenant_id` column
 
-- [ ] **Task 1.3**: Run migrations on development database
+- [x] **Task 1.3**: Run migrations on development database
   - Command: `php artisan migrate`
   - Verify schema changes in database
 
-- [ ] **Task 1.4**: Update User factory with role states
+- [x] **Task 1.4**: Update User factory with role states
   - Add `superAdmin()`, `tenantAdmin()`, `tenantUser()` factory states
   - Set default role to 'tenant_user'
   - Ensure `tenant_id` is null for super_admin role
 
 ### Phase 2: User Model Enhancements
 
-- [ ] **Task 2.1**: Add role checking methods to User model
+- [x] **Task 2.1**: Add role checking methods to User model
   - `isSuperAdmin(): bool` - Check if role is 'super_admin'
   - `isTenantAdmin(): bool` - Check if role is 'tenant_admin'
   - `isTenantUser(): bool` - Check if role is 'tenant_user'
   - `hasRole(string $role): bool` - Generic role check
   - `belongsToTenant(int $tenantId): bool` - Tenant ownership check
 
-- [ ] **Task 2.2**: Add tenant relationship to User model
+- [x] **Task 2.2**: Add tenant relationship to User model
   - `tenant()` - BelongsTo relationship to Tenant model
   - Ensure relationship works with multi-tenant architecture
 
-- [ ] **Task 2.3**: Add `role` to fillable and casts arrays
+- [x] **Task 2.3**: Add `role` to fillable and casts arrays
   - Add 'role' to `$fillable` array
   - Add 'tenant_id' to `$fillable` array (if not exists)
 
 ### Phase 3: Middleware Implementation
 
-- [ ] **Task 3.1**: Create `RequiresSuperAdmin` middleware
+- [x] **Task 3.1**: Create `RequiresSuperAdmin` middleware
   - File: `app/Http/Middleware/RequiresSuperAdmin.php`
   - Check if user is authenticated and has super_admin role
   - Abort with 403 if unauthorized
 
-- [ ] **Task 3.2**: Create `RequiresTenantAdmin` middleware
+- [x] **Task 3.2**: Create `RequiresTenantAdmin` middleware
   - File: `app/Http/Middleware/RequiresTenantAdmin.php`
   - Check if user has tenant_admin or super_admin role
   - Verify tenant ownership (user belongs to current tenant context)
   - Allow super_admins to bypass tenant checks
 
-- [ ] **Task 3.3**: Create `EnsureTenantAccess` middleware
+- [x] **Task 3.3**: Create `EnsureTenantAccess` middleware
   - File: `app/Http/Middleware/EnsureTenantAccess.php`
   - Verify user belongs to current tenant context
   - Super admins bypass this check
   - Abort with 403 if tenant context not set or user doesn't belong
 
-- [ ] **Task 3.4**: Register middleware aliases in `app/Http/Kernel.php`
+- [x] **Task 3.4**: Register middleware aliases in `app/Http/Kernel.php`
   - Alias: `super_admin` → `RequiresSuperAdmin::class`
   - Alias: `tenant_admin` → `RequiresTenantAdmin::class`
   - Alias: `tenant_access` → `EnsureTenantAccess::class`
 
 ### Phase 4: Authorization Gates
 
-- [ ] **Task 4.1**: Create authorization gates in `AuthServiceProvider`
+- [x] **Task 4.1**: Create authorization gates in `AuthServiceProvider`
   - `isSuperAdmin` - Returns true if user is super_admin
   - `isTenantAdmin` - Returns true if user is tenant_admin or super_admin
   - `canAccessTenant` - Returns true if user belongs to specified tenant
@@ -80,7 +80,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - `manageDevices` - Returns true if user can manage devices
   - `viewReports` - Returns true if user can view reports
 
-- [ ] **Task 4.2**: Test Gates in Tinker
+- [x] **Task 4.2**: Test Gates in Tinker
   - Test each Gate with different user roles
   - Verify super_admin bypasses tenant checks
   - Verify tenant_admin restricted to own tenant
@@ -134,7 +134,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 7: Testing
 
-- [ ] **Task 7.1**: Write User model unit tests
+- [x] **Task 7.1**: Write User model unit tests
   - Test all role checking methods (isSuperAdmin, isTenantAdmin, etc.)
   - Test tenant relationship
   - File: `tests/Unit/UserModelTest.php`
@@ -226,7 +226,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ```
 Phase 1 (Database) → Phase 2 (User Model) → Phase 3 (Middleware) → Phase 4 (Gates) → Phase 5 (Routes)
-                                                                                        ↓
+                                                                                       ↓
 Phase 9 (Seeding) ← Phase 8 (Documentation) ← Phase 7 (Testing) ← Phase 6 (Error Handling)
        ↓
 Phase 10 (Deployment)
@@ -234,28 +234,30 @@ Phase 10 (Deployment)
 
 ## Estimated Time
 
-- Phase 1: 1 hour
-- Phase 2: 1 hour
-- Phase 3: 2 hours
-- Phase 4: 1 hour
+- Phase 1: 1 hour ✓
+- Phase 2: 1 hour ✓
+- Phase 3: 2 hours ✓
+- Phase 4: 1 hour ✓
 - Phase 5: 2 hours
 - Phase 6: 1 hour
-- Phase 7: 4 hours
+- Phase 7: 4 hours (Task 7.1 complete)
 - Phase 8: 1 hour
 - Phase 9: 1 hour
 - Phase 10: 2 hours
 
 **Total**: ~16 hours (2 days)
+**Completed**: ~5 hours (Phases 1-4, Task 7.1)
 
 ## Success Criteria
 
-- All migrations run successfully
-- User model has role checking methods
-- All middleware classes created and registered
-- All authorization Gates defined
-- All routes protected with appropriate middleware
-- 403 error page displays correctly
-- All tests pass (100% coverage for critical paths)
-- Documentation updated
-- Demo users seeded with different roles
-- Staging deployment successful
+- [x] All migrations run successfully
+- [x] User model has role checking methods
+- [x] All middleware classes created and registered
+- [x] All authorization Gates defined
+- [ ] All routes protected with appropriate middleware
+- [ ] 403 error page displays correctly
+- [x] Initial tests written (User model tests)
+- [ ] All tests pass (100% coverage for critical paths)
+- [ ] Documentation updated
+- [ ] Demo users seeded with different roles
+- [ ] Staging deployment successful

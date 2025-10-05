@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreShiftRequest;
+use App\Http\Requests\UpdateShiftRequest;
 use App\Models\Tenant\Employee;
 use App\Models\Tenant\Shift;
 use Illuminate\Http\Request;
@@ -38,18 +40,9 @@ class ShiftController extends Controller
     /**
      * Store a newly created shift
      */
-    public function store(Request $request)
+    public function store(StoreShiftRequest $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'start_time' => ['required', 'date_format:H:i:s'],
-            'end_time' => ['required', 'date_format:H:i:s'],
-            'break_start' => ['nullable', 'date_format:H:i:s'],
-            'break_end' => ['nullable', 'date_format:H:i:s', 'after:break_start'],
-            'working_days' => ['required', 'array', 'min:1'],
-            'working_days.*' => ['required', 'string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
-            'is_default' => ['boolean'],
-        ]);
+        $validated = $request->validated();
 
         Shift::on('tenant')->create($validated);
 
@@ -95,20 +88,11 @@ class ShiftController extends Controller
     /**
      * Update the specified shift
      */
-    public function update(Request $request, Shift $shift)
+    public function update(UpdateShiftRequest $request, Shift $shift)
     {
         $shift->setConnection('tenant');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'start_time' => ['required', 'date_format:H:i:s'],
-            'end_time' => ['required', 'date_format:H:i:s'],
-            'break_start' => ['nullable', 'date_format:H:i:s'],
-            'break_end' => ['nullable', 'date_format:H:i:s', 'after:break_start'],
-            'working_days' => ['required', 'array', 'min:1'],
-            'working_days.*' => ['required', 'string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
-            'is_default' => ['boolean'],
-        ]);
+        $validated = $request->validated();
 
         $shift->update($validated);
 

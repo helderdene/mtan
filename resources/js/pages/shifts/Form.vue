@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Save, X, Clock, Calendar } from 'lucide-vue-next'
+import { Save, X, Clock, Calendar, AlertCircle } from 'lucide-vue-next'
 import shiftsRoute from '@/routes/shifts'
 import { dashboard } from '@/routes'
+import { useShiftBreakValidation } from '@/composables/useShiftBreakValidation'
 
 interface Shift {
   id: number
@@ -58,7 +59,27 @@ const toggleWorkingDay = (day: string) => {
   }
 }
 
+// Break validation composable
+const { errors: breakErrors, validate: validateBreaks, isOvernightShift } = useShiftBreakValidation(
+  computed(() => ({
+    start_time: form.start_time,
+    end_time: form.end_time,
+    break_start: form.break_start || null,
+    break_end: form.break_end || null,
+  }))
+)
+
+// Watch for changes to break times and validate
+watch([() => form.break_start, () => form.break_end, () => form.start_time, () => form.end_time], () => {
+  validateBreaks()
+})
+
 const submit = () => {
+  // Run frontend validation before submitting
+  if (!validateBreaks()) {
+    return
+  }
+
   if (isEdit.value) {
     form.put(shiftsRoute.update(props.shift!.id).url)
   } else {
@@ -179,6 +200,22 @@ const submit = () => {
               </div>
               Break Time <span class="text-sm font-normal text-muted-foreground">(Optional)</span>
             </h3>
+
+            <!-- Shift Type Indicator -->
+            <div v-if="form.start_time && form.end_time" class="mb-4 p-3 rounded-lg bg-muted/50 border">
+              <p class="text-xs text-muted-foreground flex items-center gap-2">
+                <AlertCircle class="w-3 h-3" />
+                <span v-if="isOvernightShift">
+                  Overnight shift detected ({{ form.start_time }} - {{ form.end_time }}).
+                  Break times must fall within shift hours and cannot span midnight.
+                </span>
+                <span v-else>
+                  Standard shift ({{ form.start_time }} - {{ form.end_time }}).
+                  Break times must be between shift start and end times.
+                </span>
+              </p>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <Label for="break_start" class="text-sm font-medium">Break Start Time</Label>
@@ -188,13 +225,19 @@ const submit = () => {
                 type="time"
                 step="1"
                 class="mt-2 transition-all focus:ring-2 focus:ring-orange-500/20"
-                :class="{ 'border-destructive': form.errors.break_start }"
+                :class="{ 'border-destructive': form.errors.break_start || breakErrors.break_start }"
+                @blur="validateBreaks"
               />
-              <p v-if="form.errors.break_start" class="text-sm text-destructive mt-1">
+              <p v-if="breakErrors.break_start" class="text-sm text-destructive mt-1 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
+                {{ breakErrors.break_start }}
+              </p>
+              <p v-else-if="form.errors.break_start" class="text-sm text-destructive mt-1 flex items-center gap-1">
+                <AlertCircle class="w-3 h-3" />
                 {{ form.errors.break_start }}
               </p>
-              <p class="text-xs text-muted-foreground mt-1">
-                Optional: Define when break period starts
+              <p v-else class="text-xs text-muted-foreground mt-1">
+                Leave empty if no break. Must be within shift hours.
               </p>
             </div>
 
@@ -206,13 +249,23 @@ const submit = () => {
                   type="time"
                   step="1"
                   class="mt-2 transition-all focus:ring-2 focus:ring-orange-500/20"
-                  :class="{ 'border-destructive': form.errors.break_end }"
+                  :class="{ 'border-destructive': form.errors.break_end || breakErrors.break_end }"
+                  @blur="validateBreaks"
                 />
-                <p v-if="form.errors.break_end" class="text-sm text-destructive mt-1">
+                <p v-if="breakErrors.break_end" class="text-sm text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle class="w-3 h-3" />
+                  {{ breakErrors.break_end }}
+                </p>
+                <p v-else-if="breakErrors.break_duration" class="text-sm text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle class="w-3 h-3" />
+                  {{ breakErrors.break_duration }}
+                </p>
+                <p v-else-if="form.errors.break_end" class="text-sm text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle class="w-3 h-3" />
                   {{ form.errors.break_end }}
                 </p>
-                <p class="text-xs text-muted-foreground mt-1">
-                  Must be after break start time
+                <p v-else class="text-xs text-muted-foreground mt-1">
+                  Duration: 1 minute to 2 hours. Must be after break start.
                 </p>
               </div>
             </div>

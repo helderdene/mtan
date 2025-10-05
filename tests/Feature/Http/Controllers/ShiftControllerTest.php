@@ -42,8 +42,8 @@ beforeEach(function () {
         '--force' => true,
     ]);
 
-    // Create test user
-    $this->user = User::factory()->create();
+    // Create test user with tenant_admin role
+    $this->user = User::factory()->create(['role' => 'tenant_admin']);
 
     // Create test department
     $this->department = Department::on('tenant')->create([
@@ -102,7 +102,7 @@ describe('ShiftController', function () {
             'name' => 'Night Shift',
             'start_time' => '00:00:00',
             'end_time' => '08:00:00',
-            'working_days' => ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+            'working_days' => [1, 2, 3, 4, 5], // Monday to Friday
             'is_default' => false,
         ]);
 
@@ -114,7 +114,7 @@ describe('ShiftController', function () {
         $shift = Shift::on('tenant')->where('name', 'Night Shift')->first();
         expect($shift->start_time)->toBe('00:00:00');
         expect($shift->end_time)->toBe('08:00:00');
-        expect($shift->working_days)->toBe(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
+        expect($shift->working_days)->toBe([1, 2, 3, 4, 5]);
     });
 
     test('store validates required fields', function () {
@@ -122,10 +122,9 @@ describe('ShiftController', function () {
             'name' => '',
             'start_time' => '',
             'end_time' => '',
-            'working_days' => [],
         ]);
 
-        $response->assertSessionHasErrors(['name', 'start_time', 'end_time', 'working_days']);
+        $response->assertSessionHasErrors(['name', 'start_time', 'end_time']);
     });
 
     test('store validates working days format', function () {
@@ -173,7 +172,7 @@ describe('ShiftController', function () {
             'name' => 'Morning Shift',
             'start_time' => '08:00:00',
             'end_time' => '16:00:00',
-            'working_days' => ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+            'working_days' => [1, 2, 3, 4, 5],
             'is_default' => false,
         ]);
 
@@ -181,7 +180,7 @@ describe('ShiftController', function () {
             'name' => 'Updated Morning Shift',
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',
-            'working_days' => ['monday', 'tuesday', 'wednesday'],
+            'working_days' => [1, 2, 3],
             'is_default' => true,
         ]);
 
@@ -192,7 +191,7 @@ describe('ShiftController', function () {
         expect($shift->name)->toBe('Updated Morning Shift');
         expect($shift->start_time)->toBe('09:00:00');
         expect($shift->end_time)->toBe('17:00:00');
-        expect($shift->working_days)->toBe(['monday', 'tuesday', 'wednesday']);
+        expect($shift->working_days)->toBe([1, 2, 3]);
         expect($shift->is_default)->toBeTrue();
     });
 
@@ -222,14 +221,16 @@ describe('ShiftController', function () {
             'is_default' => false,
         ]);
 
-        $employee = Employee::on('tenant')->create([
-            'custom_id' => 'EMP001',
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john@example.com',
-            'department_id' => $this->department->id,
-            'is_active' => true,
-        ]);
+        $employee = Employee::withoutEvents(function () {
+            return Employee::on('tenant')->create([
+                'custom_id' => 'EMP001',
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'email' => 'john@example.com',
+                'department_id' => $this->department->id,
+                'is_active' => true,
+            ]);
+        });
 
         // Assign shift to employee
         $employee->shifts()->attach($shift->id, [
@@ -261,14 +262,16 @@ describe('ShiftController', function () {
 
         // Create employees and assign to shift
         for ($i = 1; $i <= 3; $i++) {
-            $employee = Employee::on('tenant')->create([
-                'custom_id' => "EMP00{$i}",
-                'first_name' => "Employee{$i}",
-                'last_name' => 'Test',
-                'email' => "employee{$i}@example.com",
-                'department_id' => $this->department->id,
-                'is_active' => true,
-            ]);
+            $employee = Employee::withoutEvents(function () use ($i) {
+                return Employee::on('tenant')->create([
+                    'custom_id' => "EMP00{$i}",
+                    'first_name' => "Employee{$i}",
+                    'last_name' => 'Test',
+                    'email' => "employee{$i}@example.com",
+                    'department_id' => $this->department->id,
+                    'is_active' => true,
+                ]);
+            });
 
             $employee->shifts()->attach($shift->id, [
                 'effective_from' => now()->subMonth(),

@@ -45,7 +45,7 @@ beforeEach(function () {
     $manager->setupTenantConnection($tenantDto);
 
     // Create authenticated user
-    $this->user = User::factory()->create();
+    $this->user = User::factory()->create(['role' => 'tenant_admin']);
 });
 
 afterEach(function () {
