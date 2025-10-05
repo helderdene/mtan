@@ -37,15 +37,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.7 Test real-time updates with various attendance scenarios
   - [x] 3.8 Verify all integration tests pass
 
-- [ ] 4. Bulk Recalculation Support
-  - [ ] 4.1 Write tests for bulk recalculation (single employee, multiple employees, date ranges)
-  - [ ] 4.2 Implement `recalculateRange()` method in SummaryCalculator
-  - [ ] 4.3 Add batch processing with database transactions
-  - [ ] 4.4 Create `RecalculateSummariesCommand` in `app/Console/Commands/`
-  - [ ] 4.5 Add command options: --employee, --from, --to, --force
-  - [ ] 4.6 Add progress indicators and summary statistics to command output
-  - [ ] 4.7 Test recalculation command with various date ranges
-  - [ ] 4.8 Verify all recalculation tests pass
+- [x] 4. Bulk Recalculation Support
+  - [x] 4.1 Write tests for bulk recalculation (single employee, multiple employees, date ranges)
+  - [x] 4.2 Implement `recalculateRange()` method in SummaryCalculator
+  - [x] 4.3 Add batch processing with database transactions
+  - [x] 4.4 Create `RecalculateSummariesCommand` in `app/Console/Commands/`
+  - [x] 4.5 Add command options: --employee, --from, --to, --force
+  - [x] 4.6 Add progress indicators and summary statistics to command output
+  - [x] 4.7 Test recalculation command with various date ranges
+  - [x] 4.8 Verify all recalculation tests pass
 
 - [ ] 5. API Endpoints & Controller
   - [ ] 5.1 Write tests for API endpoints (list, filter, recalculate endpoint)
