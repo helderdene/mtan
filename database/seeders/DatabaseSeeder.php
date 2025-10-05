@@ -18,11 +18,13 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'role' => 'tenant_admin',
         ]);
 
         // Seed device registry for active tenants
-        $this->call([
-            DeviceRegistrySeeder::class,
-        ]);
+        // TODO: Re-enable after tenants are provisioned
+        // $this->call([
+        //     DeviceRegistrySeeder::class,
+        // ]);
     }
 }

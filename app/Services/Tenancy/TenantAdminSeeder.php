@@ -36,6 +36,8 @@ class TenantAdminSeeder
                 'email' => $tenantModel->admin_email,
                 'password' => Hash::make($tenantModel->admin_password),
                 'email_verified_at' => now(),
+                'role' => 'tenant_admin',
+                'tenant_id' => $tenant->id,
             ]);
 
             // Send credentials email
