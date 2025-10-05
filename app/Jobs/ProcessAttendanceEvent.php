@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Domain\Attendance\Services\DirectionDetector;
+use App\Domain\Attendance\Services\PatternAnalyzer;
 use App\DTOs\AttendanceEventDTO;
 use App\Models\DeviceRegistry;
 use App\Models\Tenant\AttendanceRecord;
@@ -30,7 +31,7 @@ class ProcessAttendanceEvent implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(TenantDatabaseManager $manager, DirectionDetector $detector): void
+    public function handle(TenantDatabaseManager $manager, DirectionDetector $detector, PatternAnalyzer $patternAnalyzer): void
     {
         try {
             // Step 1: Resolve tenant from device_id in central database
@@ -211,6 +212,20 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'mask_status' => $this->event->mask_status,
                 'verify_status' => $this->event->verify_status,
             ]);
+
+            // Step 9: Invalidate pattern cache to ensure fresh analysis on next attendance event
+            try {
+                $patternAnalyzer->invalidatePatternCache($employee);
+                Log::channel('mqtt')->debug('Pattern cache invalidated', [
+                    'employee_id' => $employee->id,
+                ]);
+            } catch (\Exception $e) {
+                // Log cache invalidation errors but don't fail the job
+                Log::channel('mqtt')->warning('Failed to invalidate pattern cache', [
+                    'employee_id' => $employee->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Store notification in cache for UI polling
             $cacheKey = "attendance_notification:{$tenant->id}:".now()->timestamp;

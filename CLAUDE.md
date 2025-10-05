@@ -127,27 +127,33 @@ The system processes biometric attendance events from devices via MQTT:
 
 The system automatically determines attendance direction (check-in, check-out, break-start, break-end) using the `DirectionDetector` service with a multi-factor weighted scoring algorithm:
 
-**Scoring Factors (weights):**
-- **Last Record Analysis (30%)**: Logical transitions based on previous direction
-  - After check-in → favor check-out or break-start (100 points)
-  - After check-out → favor check-in (100 points)
-  - After break-start → favor break-end (100 points)
-  - After break-end → favor check-out (100 points)
+**Scoring Factors (weights - total 100 points):**
 
-- **Shift Timing Proximity (35%)**: Time-based scoring relative to shift schedule
-  - Within 30 min of shift start → favor check-in
-  - Within 30 min of shift end → favor check-out
-  - Within 15 min of break start → favor break-start
-  - Within 15 min of break end → favor break-end
+1. **Last Record Analysis (30%)**: Logical transitions based on previous direction
+   - After check-in → favor check-out or break-start (100 points)
+   - After check-out → favor check-in (100 points)
+   - After break-start → favor break-end (100 points)
+   - After break-end → favor check-out (100 points)
 
-- **Work Duration (15%)**: Realistic work/break duration validation
-  - < 30 min since check-in → penalize check-out (0 points)
-  - ≥ 4 hours since check-in → favor check-out (100 points)
-  - 1-120 min since break-start → favor break-end (100 points)
+2. **Shift Timing Proximity (35%)**: Time-based scoring relative to shift schedule
+   - Within 30 min of shift start → favor check-in
+   - Within 30 min of shift end → favor check-out
+   - Within 15 min of break start → favor break-start
+   - Within 15 min of break end → favor break-end
 
-- **Time-of-Day Fallback (20%)**: Default assumptions when other factors unclear
-  - Before noon → favor check-in (100 points)
-  - After noon → favor check-out (100 points)
+3. **Work Duration (15%)**: Realistic work/break duration validation
+   - < 30 min since check-in → penalize check-out (0 points)
+   - ≥ 4 hours since check-in → favor check-out (100 points)
+   - 1-120 min since break-start → favor break-end (100 points)
+
+4. **Historical Pattern Analysis (20%)**: Employee's typical check-in/out times from last 30 days
+   - **Within 1σ (68% of data)**: 20 points - Very consistent with pattern
+   - **Within 2σ (95% of data)**: 15 points - Consistent with pattern
+   - **Within 3σ (99.7% of data)**: 10 points - Acceptable variation
+   - **Outside 3σ**: 5 points - Unusual for this employee
+   - **Unreliable pattern (< 7 records)**: 10 points - Neutral score for new employees
+   - **Caching**: Patterns cached for 24 hours, invalidated on new attendance records
+   - **Performance**: < 100ms for calculation, < 5ms for cached retrieval
 
 **Usage Example:**
 ```php

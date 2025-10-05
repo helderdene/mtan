@@ -14,7 +14,7 @@ use Carbon\Carbon;
  *
  * Algorithm Overview:
  * ------------------
- * The detector uses 4 weighted factors to determine the most likely direction:
+ * The detector uses 5 weighted factors to determine the most likely direction:
  *
  * 1. Last Record Analysis (30%): Logical transitions based on previous direction
  *    - After check-in → favor check-out or break-start
@@ -33,9 +33,12 @@ use Carbon\Carbon;
  *    - ≥ 4 hours since check-in → favor check-out
  *    - 1-120 min since break-start → favor break-end
  *
- * 4. Time-of-Day Fallback (20%): Default assumptions when other factors unclear
- *    - Before noon → favor check-in
- *    - After noon → favor check-out
+ * 4. Historical Pattern Analysis (20%): Employee's typical check-in/out times from last 30 days
+ *    - Within 1σ (68% of data) → 20 points
+ *    - Within 2σ (95% of data) → 15 points
+ *    - Within 3σ (99.7% of data) → 10 points
+ *    - Outside 3σ → 5 points
+ *    - Unreliable pattern (< 7 records) → 10 points (neutral)
  *
  * The algorithm multiplies each factor's score (0-100) by its weight, sums them
  * for each direction, and selects the direction with the highest aggregate score.
@@ -59,26 +62,36 @@ class DirectionDetector
     /**
      * Scoring weights for each factor (must total 100)
      *
-     * @var array{last_record: int, shift_timing: int, work_duration: int, fallback: int}
+     * @var array{last_record: int, shift_timing: int, work_duration: int, pattern: int}
      */
     protected array $weights;
 
     /**
+     * Pattern analyzer service
+     *
+     * @var PatternAnalyzer|null
+     */
+    protected ?PatternAnalyzer $patternAnalyzer;
+
+    /**
      * Create a new DirectionDetector instance
      *
+     * @param PatternAnalyzer|null $patternAnalyzer Pattern analyzer service (optional, will be auto-injected)
      * @param array $weights Custom scoring weights (optional). Defaults:
      *                       - last_record: 30%
      *                       - shift_timing: 35%
      *                       - work_duration: 15%
-     *                       - fallback: 20%
+     *                       - pattern: 20%
      */
-    public function __construct(array $weights = [])
+    public function __construct(?PatternAnalyzer $patternAnalyzer = null, array $weights = [])
     {
+        $this->patternAnalyzer = $patternAnalyzer ?? new PatternAnalyzer();
+
         $this->weights = array_merge([
             'last_record' => 30,    // Logical flow: what should come after last action
             'shift_timing' => 35,   // Proximity to shift start/end/break times
             'work_duration' => 15,  // Realistic work/break duration constraints
-            'fallback' => 20,       // Time-of-day heuristics when unclear
+            'pattern' => 20,        // Historical pattern analysis (30-day avg)
         ], $weights);
     }
 
@@ -107,14 +120,14 @@ class DirectionDetector
         $lastRecordScores = $this->calculateLastRecordScore($lastRecord);
         $shiftTimingScores = $this->calculateShiftTimingScore($timestamp, $shift, $lastRecord);
         $workDurationScores = $this->calculateWorkDurationScore($lastRecord, $timestamp);
-        $fallbackScores = $this->calculateFallbackScore($timestamp);
+        $patternScores = $this->calculatePatternScore($employee, $timestamp);
 
         // Apply weights and aggregate scores
         foreach ($scores as $direction => &$score) {
             $score += ($lastRecordScores[$direction] ?? 0) * ($this->weights['last_record'] / 100);
             $score += ($shiftTimingScores[$direction] ?? 0) * ($this->weights['shift_timing'] / 100);
             $score += ($workDurationScores[$direction] ?? 0) * ($this->weights['work_duration'] / 100);
-            $score += ($fallbackScores[$direction] ?? 0) * ($this->weights['fallback'] / 100);
+            $score += ($patternScores[$direction] ?? 0) * ($this->weights['pattern'] / 100);
         }
 
         // Select the direction with the highest score
@@ -133,7 +146,7 @@ class DirectionDetector
             'last_record' => $lastRecordScores[$bestDirection] ?? 0,
             'shift_timing' => $shiftTimingScores[$bestDirection] ?? 0,
             'work_duration' => $workDurationScores[$bestDirection] ?? 0,
-            'fallback' => $fallbackScores[$bestDirection] ?? 0,
+            'pattern' => $patternScores[$bestDirection] ?? 0,
             'total' => $bestScore,
             'all_directions' => $scores,
         ];
@@ -348,32 +361,37 @@ class DirectionDetector
     }
 
     /**
-     * Calculate fallback scores based on time of day
+     * Calculate scores based on historical pattern analysis
      *
+     * Uses PatternAnalyzer to score each direction based on employee's
+     * typical check-in/check-out times over the last 30 days.
+     *
+     * @param Employee $employee
      * @param Carbon $timestamp
      * @return array
      */
-    protected function calculateFallbackScore(Carbon $timestamp): array
+    protected function calculatePatternScore(Employee $employee, Carbon $timestamp): array
     {
-        $hour = $timestamp->hour;
-
-        // Morning (before noon) - favor check-in
-        if ($hour < 12) {
-            return [
-                'check-in' => 100,
-                'check-out' => 0,
-                'break-start' => 50,
-                'break-end' => 50,
-            ];
-        }
-
-        // Afternoon/Evening - favor check-out
-        return [
+        $scores = [
             'check-in' => 0,
-            'check-out' => 100,
-            'break-start' => 50,
-            'break-end' => 50,
+            'check-out' => 0,
+            'break-start' => 0,
+            'break-end' => 0,
         ];
+
+        // Score check-in direction based on pattern
+        $checkInScore = $this->patternAnalyzer->scorePattern($employee, $timestamp, 'check-in');
+        $scores['check-in'] = $checkInScore * 5; // Convert 0-20 to 0-100 scale
+
+        // Score check-out direction based on pattern
+        $checkOutScore = $this->patternAnalyzer->scorePattern($employee, $timestamp, 'check-out');
+        $scores['check-out'] = $checkOutScore * 5; // Convert 0-20 to 0-100 scale
+
+        // Breaks don't have historical patterns, use neutral score
+        $scores['break-start'] = 50;
+        $scores['break-end'] = 50;
+
+        return $scores;
     }
 
     /**
