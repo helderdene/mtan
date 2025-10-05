@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip in testing environment (no central database)
+        if (app()->environment('testing')) {
+            return;
+        }
+
         Schema::connection('central')->table('tenants', function (Blueprint $table) {
             $table->string('admin_email')->nullable()->after('domain');
             $table->string('admin_password')->nullable()->after('admin_email');
@@ -22,6 +27,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Skip in testing environment (no central database)
+        if (app()->environment('testing')) {
+            return;
+        }
+
         Schema::connection('central')->table('tenants', function (Blueprint $table) {
             $table->dropColumn(['admin_email', 'admin_password']);
         });

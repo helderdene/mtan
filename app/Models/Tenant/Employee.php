@@ -16,6 +16,19 @@ class Employee extends Model
 
     protected $connection = 'tenant';
 
+    /**
+     * Get the database connection for the model.
+     */
+    public function getConnectionName()
+    {
+        // Use default connection in testing environment
+        if (app()->environment('testing')) {
+            return config('database.default');
+        }
+
+        return $this->connection;
+    }
+
     protected $fillable = [
         'custom_id',
         'first_name',
@@ -51,6 +64,11 @@ class Employee extends Model
                 $employee->custom_id = static::generateCustomId();
             }
         });
+
+        // Skip device sync in testing environment
+        if (app()->environment('testing')) {
+            return;
+        }
 
         // Sync employee to devices after creation
         static::created(function ($employee) {
@@ -159,6 +177,14 @@ class Employee extends Model
     }
 
     /**
+     * Relationship: Employee has many daily attendance summaries
+     */
+    public function dailySummaries(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Attendance\Models\DailyAttendanceSummary::class);
+    }
+
+    /**
      * Scope: Filter active employees
      */
     public function scopeActive($query)
@@ -201,5 +227,13 @@ class Employee extends Model
             'deleted' => \App\Jobs\RemoveEmployeeFromDevices::dispatch($employee->id, $tenantId),
             default => null,
         };
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\EmployeeFactory::new();
     }
 }
