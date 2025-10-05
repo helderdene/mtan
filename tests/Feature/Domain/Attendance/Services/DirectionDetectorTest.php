@@ -64,10 +64,10 @@ describe('DirectionDetector Service', function () {
             'last_record' => 25,
             'shift_timing' => 40,
             'work_duration' => 20,
-            'fallback' => 15,
+            'pattern' => 15,
         ];
 
-        $detector = new DirectionDetector($customWeights);
+        $detector = new DirectionDetector(null, $customWeights);
 
         expect($detector)->toBeInstanceOf(DirectionDetector::class);
     });

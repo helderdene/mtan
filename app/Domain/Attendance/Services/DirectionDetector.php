@@ -74,6 +74,13 @@ class DirectionDetector
     protected ?PatternAnalyzer $patternAnalyzer;
 
     /**
+     * Cache for last attendance records (prevents duplicate queries in same request)
+     *
+     * @var array
+     */
+    protected array $lastRecordCache = [];
+
+    /**
      * Create a new DirectionDetector instance
      *
      * @param PatternAnalyzer|null $patternAnalyzer Pattern analyzer service (optional, will be auto-injected)
@@ -162,16 +169,31 @@ class DirectionDetector
     /**
      * Get the most recent attendance record for an employee before the given timestamp
      *
+     * Uses in-memory caching to prevent duplicate queries within the same request.
+     *
      * @param Employee $employee
      * @param Carbon $timestamp
      * @return AttendanceRecord|null
      */
     protected function getLastAttendanceRecord(Employee $employee, Carbon $timestamp): ?AttendanceRecord
     {
-        return AttendanceRecord::where('employee_id', $employee->id)
+        $cacheKey = "employee_{$employee->id}_before_" . $timestamp->timestamp;
+
+        // Check in-memory cache first
+        if (array_key_exists($cacheKey, $this->lastRecordCache)) {
+            return $this->lastRecordCache[$cacheKey];
+        }
+
+        // Query database with optimized index usage
+        $record = AttendanceRecord::where('employee_id', $employee->id)
             ->where('recorded_at', '<', $timestamp)
             ->orderBy('recorded_at', 'desc')
             ->first();
+
+        // Cache the result (including null) for this request
+        $this->lastRecordCache[$cacheKey] = $record;
+
+        return $record;
     }
 
     /**
