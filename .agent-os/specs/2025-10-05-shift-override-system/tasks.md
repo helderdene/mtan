@@ -3,35 +3,35 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/2025-10-05-shift-override-system/spec.md
 
 > Created: 2025-10-05
-> Status: Ready for Implementation
+> Status: Phase 1-3 & 5 Complete (API pending)
 
 ## Tasks
 
 ### Phase 1: Database & Model Setup
 
-- [ ] Create migration for `shift_overrides` table with all columns, indexes, and constraints
-- [ ] Create `ShiftOverride` model in `app/Domain/Shift/Models/`
-- [ ] Define relationships: `shift()` and `employee()` BelongsTo relationships
-- [ ] Add validation rules and accessors/mutators as needed
-- [ ] Create factory for `ShiftOverride` model for testing
-- [ ] Run migration and verify table structure
+- [x] Create migration for `shift_overrides` table with all columns, indexes, and constraints
+- [x] Create `ShiftOverride` model in `app/Domain/Shift/Models/`
+- [x] Define relationships: `shift()` and `employee()` BelongsTo relationships
+- [x] Add validation rules and accessors/mutators as needed
+- [x] Create factory for `ShiftOverride` model for testing
+- [x] Run migration and verify table structure
 
 ### Phase 2: Service Layer Implementation
 
-- [ ] Create `OverrideService` in `app/Domain/Shift/Services/`
-- [ ] Implement `getActiveOverride()` method with priority resolution logic
-- [ ] Implement `isWorkRequired()` method to check if work is expected on date
-- [ ] Implement `getEffectiveShiftTimes()` method to get modified shift times
-- [ ] Create `EffectiveShift` DTO in `app/Domain/Shift/DTOs/`
-- [ ] Add caching layer with tenant-specific cache keys
-- [ ] Implement cache invalidation on override create/update/delete
+- [x] Create `OverrideService` in `app/Domain/Shift/Services/`
+- [x] Implement `getActiveOverride()` method with priority resolution logic
+- [x] Implement `isWorkRequired()` method to check if work is expected on date
+- [x] Implement `getEffectiveShiftTimes()` method to get modified shift times
+- [x] Create `EffectiveShift` DTO in `app/Domain/Shift/DTOs/`
+- [x] Add caching layer with tenant-specific cache keys
+- [x] Implement cache invalidation on override create/update/delete
 
 ### Phase 3: Integration with Existing Services
 
-- [ ] Update `DirectionDetector` to inject and use `OverrideService`
-- [ ] Add override check before direction detection scoring
-- [ ] Handle holiday/off-day overrides with warning logs
-- [ ] Handle half-day/custom-shift overrides by modifying shift times
+- [x] Update `DirectionDetector` to inject and use `OverrideService`
+- [x] Add override check before direction detection scoring
+- [x] Handle holiday/off-day overrides with warning logs
+- [x] Handle half-day/custom-shift overrides by modifying shift times
 - [ ] Update violation detection logic to check `isWorkRequired()`
 - [ ] Update violation detection to use `getEffectiveShiftTimes()`
 - [ ] Test direction detection with various override scenarios
@@ -50,17 +50,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 5: Testing
 
-- [ ] Create `OverrideServiceTest.php` in `tests/Unit/`
-- [ ] Test override resolution priority logic
-- [ ] Test `isWorkRequired()` for all override types
-- [ ] Test `getEffectiveShiftTimes()` for half-day and custom-shift
-- [ ] Test edge cases (null shift, null employee, multiple overrides)
-- [ ] Create `ShiftOverrideTest.php` in `tests/Feature/`
+- [x] Create `OverrideServiceTest.php` in `tests/Feature/`
+- [x] Test override resolution priority logic
+- [x] Test `isWorkRequired()` for all override types
+- [x] Test `getEffectiveShiftTimes()` for half-day and custom-shift
+- [x] Test edge cases (null shift, null employee, multiple overrides)
+- [ ] Create `ShiftOverrideTest.php` in `tests/Feature/` for API endpoints
 - [ ] Test CRUD API endpoints (create, read, update, delete)
 - [ ] Test company-wide holiday prevents violations
 - [ ] Test employee-specific off-day prevents violations
 - [ ] Test half-day modifies shift times correctly
-- [ ] Test integration with direction detection
+- [x] Test integration with direction detection (via OverrideServiceTest)
 - [ ] Test cache invalidation on override changes
 
 ### Phase 6: UI Implementation (Future)

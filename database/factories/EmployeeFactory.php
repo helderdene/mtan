@@ -2,12 +2,11 @@
 
 namespace Database\Factories;
 
-use App\Models\Tenant\Department;
-use App\Models\Tenant\Employee;
+use App\Domain\Shift\Models\Employee;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Tenant\Employee>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Domain\Shift\Models\Employee>
  */
 class EmployeeFactory extends Factory
 {
@@ -21,14 +20,20 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'custom_id' => 'EMP' . fake()->unique()->numberBetween(1000, 9999),
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
-            'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->phoneNumber(),
-            'department_id' => Department::factory(),
+            'employee_code' => strtoupper($this->faker->unique()->lexify('EMP???')),
+            'custom_id' => 'EMP' . $this->faker->unique()->numberBetween(1000, 9999),
+            'name' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'phone' => $this->faker->phoneNumber(),
+            'department_id' => null,
+            'designation' => $this->faker->jobTitle(),
+            'employee_type' => 'full-time',
+            'card_number' => null,
+            'joining_date' => $this->faker->dateTimeBetween('-2 years', 'now'),
+            'leaving_date' => null,
+            'reporting_manager_id' => null,
             'is_active' => true,
-            'hired_at' => fake()->dateTimeBetween('-2 years', 'now'),
+            'metadata' => null,
         ];
     }
 

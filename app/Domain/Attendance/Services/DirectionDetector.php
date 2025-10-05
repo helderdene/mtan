@@ -3,10 +3,12 @@
 namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\DTOs\DirectionResult;
+use App\Domain\Shift\Models\Shift;
+use App\Domain\Shift\Models\Employee;
+use App\Domain\Shift\Services\OverrideService;
 use App\Models\Tenant\AttendanceRecord;
-use App\Models\Tenant\Employee;
-use App\Models\Tenant\Shift;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service for detecting attendance direction (check-in, check-out, break-start, break-end)
@@ -74,6 +76,13 @@ class DirectionDetector
     protected ?PatternAnalyzer $patternAnalyzer;
 
     /**
+     * Override service for handling shift overrides
+     *
+     * @var OverrideService
+     */
+    protected OverrideService $overrideService;
+
+    /**
      * Cache for last attendance records (prevents duplicate queries in same request)
      *
      * @var array
@@ -84,15 +93,20 @@ class DirectionDetector
      * Create a new DirectionDetector instance
      *
      * @param PatternAnalyzer|null $patternAnalyzer Pattern analyzer service (optional, will be auto-injected)
+     * @param OverrideService|null $overrideService Override service (optional, will be auto-injected)
      * @param array $weights Custom scoring weights (optional). Defaults:
      *                       - last_record: 30%
      *                       - shift_timing: 35%
      *                       - work_duration: 15%
      *                       - pattern: 20%
      */
-    public function __construct(?PatternAnalyzer $patternAnalyzer = null, array $weights = [])
-    {
+    public function __construct(
+        ?PatternAnalyzer $patternAnalyzer = null,
+        ?OverrideService $overrideService = null,
+        array $weights = []
+    ) {
         $this->patternAnalyzer = $patternAnalyzer ?? new PatternAnalyzer();
+        $this->overrideService = $overrideService ?? new OverrideService();
 
         $this->weights = array_merge([
             'last_record' => 30,    // Logical flow: what should come after last action
@@ -112,6 +126,43 @@ class DirectionDetector
      */
     public function detect(Employee $employee, Carbon $timestamp, ?Shift $shift): DirectionResult
     {
+        // Check for shift overrides before proceeding
+        $override = null;
+        $effectiveShift = null;
+
+        if ($shift) {
+            $override = $this->overrideService->getActiveOverride(
+                $timestamp->copy()->startOfDay(),
+                $shift,
+                $employee
+            );
+
+            // If holiday or off-day, employee should not be working
+            // Log warning and process with low confidence
+            if ($override && in_array($override->type, ['holiday', 'off-day'])) {
+                Log::warning("Attendance event received on {$override->type}", [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'date' => $timestamp->toDateString(),
+                    'override_type' => $override->type,
+                    'override_reason' => $override->reason,
+                ]);
+            }
+
+            // Get effective shift times (accounting for half-day/custom-shift)
+            $effectiveShift = $this->overrideService->getEffectiveShiftTimes(
+                $timestamp->copy()->startOfDay(),
+                $shift,
+                $employee
+            );
+
+            // If no work required (holiday/off-day), use original shift for scoring
+            // but with reduced confidence
+            if ($effectiveShift === null) {
+                $effectiveShift = null;
+            }
+        }
+
         // Get the last attendance record for context
         $lastRecord = $this->getLastAttendanceRecord($employee, $timestamp);
 
@@ -123,9 +174,9 @@ class DirectionDetector
             'break-end' => 0,
         ];
 
-        // Calculate scores for each factor
+        // Calculate scores for each factor (use effective shift for timing if available)
         $lastRecordScores = $this->calculateLastRecordScore($lastRecord);
-        $shiftTimingScores = $this->calculateShiftTimingScore($timestamp, $shift, $lastRecord);
+        $shiftTimingScores = $this->calculateShiftTimingScore($timestamp, $shift, $lastRecord, $effectiveShift);
         $workDurationScores = $this->calculateWorkDurationScore($lastRecord, $timestamp);
         $patternScores = $this->calculatePatternScore($employee, $timestamp);
 
@@ -145,6 +196,11 @@ class DirectionDetector
         // Calculate confidence (0-100)
         $confidence = (int) round($bestScore);
 
+        // Reduce confidence if on holiday/off-day
+        if ($override && in_array($override->type, ['holiday', 'off-day'])) {
+            $confidence = min(50, $confidence); // Cap at 50% on holidays/off-days
+        }
+
         // Build human-readable reason
         $reason = $this->buildDetectionReason($bestDirection, $lastRecord, $shift, $timestamp, $confidence);
 
@@ -156,6 +212,8 @@ class DirectionDetector
             'pattern' => $patternScores[$bestDirection] ?? 0,
             'total' => $bestScore,
             'all_directions' => $scores,
+            'override_applied' => $override !== null,
+            'override_type' => $override?->type,
         ];
 
         return new DirectionResult(
@@ -255,9 +313,10 @@ class DirectionDetector
      * @param Carbon $timestamp
      * @param Shift|null $shift
      * @param AttendanceRecord|null $lastRecord
+     * @param \App\Domain\Shift\DTOs\EffectiveShift|null $effectiveShift
      * @return array
      */
-    protected function calculateShiftTimingScore(Carbon $timestamp, ?Shift $shift, ?AttendanceRecord $lastRecord): array
+    protected function calculateShiftTimingScore(Carbon $timestamp, ?Shift $shift, ?AttendanceRecord $lastRecord, $effectiveShift = null): array
     {
         if (!$shift) {
             // No shift - return neutral scores
@@ -276,25 +335,31 @@ class DirectionDetector
             'break-end' => 0,
         ];
 
-        // Parse shift times using timestamp's date as base
-        $shiftStart = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->start_time);
-        $shiftEnd = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->end_time);
+        // Use effective shift times if override is present, otherwise use regular shift
+        if ($effectiveShift) {
+            $shiftStart = $effectiveShift->startTime;
+            $shiftEnd = $effectiveShift->endTime;
+        } else {
+            // Parse shift times using timestamp's date as base
+            $shiftStart = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->start_time);
+            $shiftEnd = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->end_time);
 
-        // Handle overnight shifts
-        $isOvernightShift = Carbon::parse($shift->end_time)->lessThan(Carbon::parse($shift->start_time));
-        if ($isOvernightShift) {
-            // If timestamp time is closer to end_time than start_time, it's the next day portion
-            $timestampTime = Carbon::parse($timestamp->format('H:i:s'));
-            $shiftStartTime = Carbon::parse($shift->start_time);
-            $shiftEndTime = Carbon::parse($shift->end_time);
+            // Handle overnight shifts
+            $isOvernightShift = Carbon::parse($shift->end_time)->lessThan(Carbon::parse($shift->start_time));
+            if ($isOvernightShift) {
+                // If timestamp time is closer to end_time than start_time, it's the next day portion
+                $timestampTime = Carbon::parse($timestamp->format('H:i:s'));
+                $shiftStartTime = Carbon::parse($shift->start_time);
+                $shiftEndTime = Carbon::parse($shift->end_time);
 
-            // If current time is before noon and shift end is before noon, we're in the next-day portion
-            if ($timestampTime->hour < 12 && $shiftEndTime->hour < 12) {
-                // Shift start was yesterday
-                $shiftStart->subDay();
-            } else {
-                // Normal case: shift end is tomorrow
-                $shiftEnd->addDay();
+                // If current time is before noon and shift end is before noon, we're in the next-day portion
+                if ($timestampTime->hour < 12 && $shiftEndTime->hour < 12) {
+                    // Shift start was yesterday
+                    $shiftStart->subDay();
+                } else {
+                    // Normal case: shift end is tomorrow
+                    $shiftEnd->addDay();
+                }
             }
         }
 

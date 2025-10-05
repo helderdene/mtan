@@ -2,25 +2,31 @@
 
 namespace Database\Factories;
 
-use App\Models\Tenant\Shift;
+use App\Domain\Shift\Models\Shift;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ShiftFactory extends Factory
 {
     protected $model = Shift::class;
 
-    protected $connection = 'tenant';
-
     public function definition(): array
     {
         return [
-            'name' => $this->faker->words(2, true).' Shift',
+            'name' => fake()->words(2, true).' Shift',
+            'code' => strtoupper(fake()->unique()->lexify('SH???')),
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',
             'break_start' => null,
             'break_end' => null,
-            'working_days' => ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-            'is_default' => false,
+            'grace_period_minutes' => 15,
+            'early_departure_threshold_minutes' => 15,
+            'overtime_threshold_minutes' => 30,
+            'half_day_threshold_minutes' => 240,
+            'working_days' => [1, 2, 3, 4, 5], // Monday-Friday
+            'shift_type' => 'fixed',
+            'is_overnight' => false,
+            'color_code' => '#3498db',
+            'is_active' => true,
         ];
     }
 
