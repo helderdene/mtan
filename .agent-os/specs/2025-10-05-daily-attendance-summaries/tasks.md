@@ -47,15 +47,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.7 Test recalculation command with various date ranges
   - [x] 4.8 Verify all recalculation tests pass
 
-- [ ] 5. API Endpoints & Controller
-  - [ ] 5.1 Write tests for API endpoints (list, filter, recalculate endpoint)
-  - [ ] 5.2 Create `AttendanceSummaryController` in `app/Http/Controllers/Api/`
-  - [ ] 5.3 Implement `index()` method with filtering (employee_id, date, from/to range, status)
-  - [ ] 5.4 Implement `show()` method for employee-specific summaries
-  - [ ] 5.5 Implement `recalculate()` method for triggering recalculation
-  - [ ] 5.6 Create Form Request for recalculate validation
-  - [ ] 5.7 Add routes to `routes/api.php` with proper authentication
-  - [ ] 5.8 Verify all API tests pass with proper response formats
+- [x] 5. API Endpoints & Controller
+  - [x] 5.1 Write tests for API endpoints (list, filter, recalculate endpoint)
+  - [x] 5.2 Create `AttendanceSummaryController` in `app/Http/Controllers/Api/`
+  - [x] 5.3 Implement `index()` method with filtering (employee_id, date, from/to range, status)
+  - [x] 5.4 Implement `show()` method for employee-specific summaries
+  - [x] 5.5 Implement `recalculate()` method for triggering recalculation
+  - [x] 5.6 Create Form Request for recalculate validation
+  - [x] 5.7 Add routes to `routes/api.php` with proper authentication
+  - [x] 5.8 Verify all API tests pass with proper response formats
 
 - [ ] 6. Performance Optimization & Caching
   - [ ] 6.1 Write tests for caching behavior (cache hit, cache invalidation)
