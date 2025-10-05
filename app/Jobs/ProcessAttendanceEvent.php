@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Domain\Attendance\Services\DirectionDetector;
 use App\Domain\Attendance\Services\PatternAnalyzer;
+use App\Domain\Attendance\Services\SummaryCalculator;
 use App\DTOs\AttendanceEventDTO;
 use App\Models\DeviceRegistry;
 use App\Models\Tenant\AttendanceRecord;
@@ -31,7 +32,12 @@ class ProcessAttendanceEvent implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(TenantDatabaseManager $manager, DirectionDetector $detector, PatternAnalyzer $patternAnalyzer): void
+    public function handle(
+        TenantDatabaseManager $manager,
+        DirectionDetector $detector,
+        PatternAnalyzer $patternAnalyzer,
+        SummaryCalculator $summaryCalculator
+    ): void
     {
         try {
             // Step 1: Resolve tenant from device_id in central database
@@ -178,7 +184,7 @@ class ProcessAttendanceEvent implements ShouldQueue
             // Convert similarity score from 0-100 range to 0-1 range for database
             $recognitionScore = $this->event->similarity_score / 100;
 
-            AttendanceRecord::on('tenant')->create([
+            $record = AttendanceRecord::on('tenant')->create([
                 'employee_id' => $employee->id,
                 'device_id' => $device->id,
                 'recorded_at' => $recordedAt,
@@ -212,6 +218,28 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'mask_status' => $this->event->mask_status,
                 'verify_status' => $this->event->verify_status,
             ]);
+
+            // Step 8.5: Update daily attendance summary in real-time
+            try {
+                $summary = $summaryCalculator->updateSummaryFromEvent($record);
+
+                Log::channel('mqtt')->info('Daily attendance summary updated', [
+                    'employee_id' => $employee->id,
+                    'date' => $summary->date->toDateString(),
+                    'total_work_hours' => $summary->total_work_hours,
+                    'total_break_hours' => $summary->total_break_hours,
+                    'overtime_hours' => $summary->overtime_hours,
+                    'status' => $summary->status,
+                    'is_complete' => $summary->is_complete,
+                ]);
+            } catch (\Exception $e) {
+                // Log summary update errors but don't fail the job
+                Log::channel('mqtt')->warning('Failed to update daily attendance summary', [
+                    'employee_id' => $employee->id,
+                    'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Step 9: Invalidate pattern cache to ensure fresh analysis on next attendance event
             try {

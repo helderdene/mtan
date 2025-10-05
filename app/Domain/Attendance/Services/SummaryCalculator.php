@@ -118,10 +118,34 @@ class SummaryCalculator
      */
     public function updateSummaryFromEvent(AttendanceRecord $record): DailyAttendanceSummary
     {
-        return $this->calculateForDate(
-            $record->employee,
-            $record->recorded_at->copy()->startOfDay()
-        );
+        $date = $record->recorded_at->copy()->startOfDay();
+
+        // For check-out or break-end records, check if there's a check-in from the previous day
+        // This handles overnight shifts where check-out happens after midnight
+        if (in_array($record->direction, ['check-out', 'break-end'])) {
+            $previousDayCheckIn = AttendanceRecord::where('employee_id', $record->employee_id)
+                ->whereDate('recorded_at', $date->copy()->subDay())
+                ->where('direction', 'check-in')
+                ->orderBy('recorded_at', 'desc')
+                ->first();
+
+            // If there's a check-in from the previous day without a matching check-out,
+            // this check-out belongs to that day's summary
+            if ($previousDayCheckIn) {
+                $previousDayCheckOut = AttendanceRecord::where('employee_id', $record->employee_id)
+                    ->whereDate('recorded_at', $date->copy()->subDay())
+                    ->where('direction', 'check-out')
+                    ->where('recorded_at', '>', $previousDayCheckIn->recorded_at)
+                    ->exists();
+
+                if (! $previousDayCheckOut) {
+                    // This check-out belongs to the previous day's summary
+                    $date = $date->subDay();
+                }
+            }
+        }
+
+        return $this->calculateForDate($record->employee, $date);
     }
 
     /**
