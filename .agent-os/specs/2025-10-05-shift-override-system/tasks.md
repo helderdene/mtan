@@ -3,7 +3,7 @@
 These are the tasks to be completed for the spec detailed in @.agent-os/specs/2025-10-05-shift-override-system/spec.md
 
 > Created: 2025-10-05
-> Status: Phase 1-3 & 5 Complete (API pending)
+> Status: Phase 1-5 Complete (Violation Detection Integration Pending)
 
 ## Tasks
 
@@ -38,14 +38,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ### Phase 4: API Endpoints & Controller
 
-- [ ] Create `ShiftOverrideController` in `app/Http/Controllers/Api/`
-- [ ] Implement `index()` method with filtering (date, shift, employee, type)
-- [ ] Implement `store()` method with validation
-- [ ] Implement `show()` method for override details
-- [ ] Implement `update()` method with validation
-- [ ] Implement `destroy()` method with cache invalidation
-- [ ] Create Form Request classes for validation
-- [ ] Add routes to `routes/api.php` or `routes/web.php`
+- [x] Create `ShiftOverrideController` in `app/Http/Controllers/Api/`
+- [x] Implement `index()` method with filtering (date, shift, employee, type)
+- [x] Implement `store()` method with validation
+- [x] Implement `show()` method for override details
+- [x] Implement `update()` method with validation
+- [x] Implement `destroy()` method with cache invalidation
+- [x] Create Form Request classes for validation
+- [x] Add routes to `routes/api.php` or `routes/web.php`
 - [ ] Add authorization policies for override management
 
 ### Phase 5: Testing

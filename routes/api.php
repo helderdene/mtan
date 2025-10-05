@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ShiftOverrideController;
 use App\Http\Controllers\Api\V1\ShiftController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,4 +24,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     // Shift Resource Routes
     Route::apiResource('shifts', ShiftController::class);
+
+    // Shift Override Resource Routes
+    Route::apiResource('shift-overrides', ShiftOverrideController::class);
 });
