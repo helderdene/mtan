@@ -17,15 +17,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.7 Run migration and verify table structure
   - [x] 1.8 Verify all model tests pass
 
-- [ ] 2. Summary Calculation Service
-  - [ ] 2.1 Write tests for SummaryCalculator service (work hours, break time, overnight shifts, overtime, status determination)
-  - [ ] 2.2 Create `SummaryCalculator` service in `app/Domain/Attendance/Services/`
-  - [ ] 2.3 Implement `calculateWorkHours()` method handling check-in/check-out/break pairs
-  - [ ] 2.4 Implement `calculateBreakTime()` method for break-start/break-end pairs
-  - [ ] 2.5 Implement `calculateOvertime()` method using OverrideService for effective shift times
-  - [ ] 2.6 Implement `determineStatus()` method with shift override integration
-  - [ ] 2.7 Implement `calculateForDate()` method that aggregates all calculations
-  - [ ] 2.8 Verify all calculation tests pass including edge cases
+- [x] 2. Summary Calculation Service
+  - [x] 2.1 Write tests for SummaryCalculator service (work hours, break time, overnight shifts, overtime, status determination)
+  - [x] 2.2 Create `SummaryCalculator` service in `app/Domain/Attendance/Services/`
+  - [x] 2.3 Implement `calculateWorkHours()` method handling check-in/check-out/break pairs
+  - [x] 2.4 Implement `calculateBreakTime()` method for break-start/break-end pairs
+  - [x] 2.5 Implement `calculateOvertime()` method using OverrideService for effective shift times
+  - [x] 2.6 Implement `determineStatus()` method with shift override integration
+  - [x] 2.7 Implement `calculateForDate()` method that aggregates all calculations
+  - [x] 2.8 Verify all calculation tests pass including edge cases
 
 - [ ] 3. Real-time Summary Updates
   - [ ] 3.1 Write tests for real-time summary updates on attendance events
