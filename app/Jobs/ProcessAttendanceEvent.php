@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\Attendance\Services\DirectionDetector;
 use App\DTOs\AttendanceEventDTO;
 use App\Models\DeviceRegistry;
 use App\Models\Tenant\AttendanceRecord;
@@ -29,7 +30,7 @@ class ProcessAttendanceEvent implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(TenantDatabaseManager $manager): void
+    public function handle(TenantDatabaseManager $manager, DirectionDetector $detector): void
     {
         try {
             // Step 1: Resolve tenant from device_id in central database
@@ -154,7 +155,25 @@ class ProcessAttendanceEvent implements ShouldQueue
                 return;
             }
 
-            // Step 7: Create attendance record with all MQTT fields
+            // Step 7: Detect attendance direction using DirectionDetector
+            $shift = $employee->current_shift; // Get employee's current shift
+            $directionResult = $detector->detect($employee, $recordedAt, $shift);
+
+            // Log low-confidence detections for monitoring
+            if ($directionResult->confidence < 50) {
+                Log::channel('mqtt')->warning('Low confidence direction detection', [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->full_name,
+                    'detected_direction' => $directionResult->direction,
+                    'confidence' => $directionResult->confidence,
+                    'confidence_level' => $directionResult->getConfidenceLevel(),
+                    'reason' => $directionResult->reason,
+                    'scores' => $directionResult->scores,
+                    'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            // Step 8: Create attendance record with all MQTT fields and direction detection
             // Convert similarity score from 0-100 range to 0-1 range for database
             $recognitionScore = $this->event->similarity_score / 100;
 
@@ -162,7 +181,9 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'employee_id' => $employee->id,
                 'device_id' => $device->id,
                 'recorded_at' => $recordedAt,
-                'direction' => 'check-in', // Phase 1 simplification
+                'direction' => $directionResult->direction,
+                'confidence_score' => $directionResult->confidence,
+                'detection_reason' => $directionResult->reason,
                 'recognition_score' => $recognitionScore,
                 'record_id' => $this->event->record_id,
                 'person_name' => $this->event->person_name,
@@ -173,7 +194,7 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'photo_path' => null, // Photo storage will be implemented in Phase 3
             ]);
 
-            Log::channel('mqtt')->info('Attendance record created with full MQTT metadata', [
+            Log::channel('mqtt')->info('Attendance record created with direction detection', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,
                 'custom_id' => $this->event->custom_id,
@@ -181,6 +202,10 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'device_id' => $device->id,
                 'device_name' => $this->event->device_name,
                 'recorded_at' => $this->event->timestamp->format('Y-m-d H:i:s'),
+                'direction' => $directionResult->direction,
+                'confidence' => $directionResult->confidence,
+                'confidence_level' => $directionResult->getConfidenceLevel(),
+                'detection_reason' => $directionResult->reason,
                 'recognition_score' => $this->event->similarity_score,
                 'temperature' => $this->event->temperature,
                 'mask_status' => $this->event->mask_status,
@@ -190,7 +215,8 @@ class ProcessAttendanceEvent implements ShouldQueue
             // Store notification in cache for UI polling
             $cacheKey = "attendance_notification:{$tenant->id}:".now()->timestamp;
             $deviceName = $device->device_name ?: "Device {$device->device_id}";
-            $message = "{$employee->full_name} checked in at {$deviceName} ({$recordedAt->format('H:i')})";
+            $directionLabel = str_replace('-', ' ', $directionResult->direction);
+            $message = "{$employee->full_name} {$directionLabel} at {$deviceName} ({$recordedAt->format('H:i')})";
 
             $notificationData = [
                 'type' => 'attendance',
@@ -200,8 +226,9 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'device_id' => $device->id,
                 'device_name' => $deviceName,
                 'recorded_at' => $recordedAt->toIso8601String(),
-                'direction' => 'check-in',
-                'recognition_score' => $this->event->similarity,
+                'direction' => $directionResult->direction,
+                'confidence' => $directionResult->confidence,
+                'recognition_score' => $this->event->similarity_score,
             ];
 
             \Cache::put($cacheKey, $notificationData, now()->addMinutes(5));

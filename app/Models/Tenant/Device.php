@@ -102,4 +102,12 @@ class Device extends Model
 
         return $this->isOnline() ? 'online' : 'offline';
     }
+
+    /**
+     * Create a new factory instance for the model
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\DeviceFactory::new();
+    }
 }

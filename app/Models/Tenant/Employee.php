@@ -202,4 +202,12 @@ class Employee extends Model
             default => null,
         };
     }
+
+    /**
+     * Create a new factory instance for the model
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\EmployeeFactory::new();
+    }
 }

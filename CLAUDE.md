@@ -125,12 +125,57 @@ The system processes biometric attendance events from devices via MQTT:
 
 ### Smart Direction Detection
 
-The system automatically determines check-in/check-out direction using:
-- **Last Record Analysis**: Previous direction determines likely next direction
-- **Shift Timing**: Proximity to shift start/end/break times
-- **Historical Patterns**: Employee's typical check-in/out times from last 30 days
-- **Work Duration**: Minimum time between check-in and check-out
-- **Confidence Scoring**: Multi-factor weighted scoring (0-100) for each possible direction
+The system automatically determines attendance direction (check-in, check-out, break-start, break-end) using the `DirectionDetector` service with a multi-factor weighted scoring algorithm:
+
+**Scoring Factors (weights):**
+- **Last Record Analysis (30%)**: Logical transitions based on previous direction
+  - After check-in → favor check-out or break-start (100 points)
+  - After check-out → favor check-in (100 points)
+  - After break-start → favor break-end (100 points)
+  - After break-end → favor check-out (100 points)
+
+- **Shift Timing Proximity (35%)**: Time-based scoring relative to shift schedule
+  - Within 30 min of shift start → favor check-in
+  - Within 30 min of shift end → favor check-out
+  - Within 15 min of break start → favor break-start
+  - Within 15 min of break end → favor break-end
+
+- **Work Duration (15%)**: Realistic work/break duration validation
+  - < 30 min since check-in → penalize check-out (0 points)
+  - ≥ 4 hours since check-in → favor check-out (100 points)
+  - 1-120 min since break-start → favor break-end (100 points)
+
+- **Time-of-Day Fallback (20%)**: Default assumptions when other factors unclear
+  - Before noon → favor check-in (100 points)
+  - After noon → favor check-out (100 points)
+
+**Usage Example:**
+```php
+use App\Domain\Attendance\Services\DirectionDetector;
+use Carbon\Carbon;
+
+$detector = new DirectionDetector();
+$employee = Employee::find(1);
+$shift = $employee->current_shift;
+$timestamp = Carbon::parse('2025-10-05 09:05:00');
+
+$result = $detector->detect($employee, $timestamp, $shift);
+
+// $result->direction: 'check-in' | 'check-out' | 'break-start' | 'break-end'
+// $result->confidence: 0-100 integer (85 = high confidence)
+// $result->getConfidenceLevel(): 'high' | 'medium' | 'low'
+// $result->reason: "High confidence: Near shift start (09:00), first record of day"
+// $result->scores: Array of detailed score breakdown
+```
+
+**Overnight Shift Support:**
+The detector automatically handles shifts crossing midnight (e.g., 22:00-06:00) by comparing timestamp dates and adjusting shift boundaries accordingly.
+
+**Edge Cases:**
+- No shift assigned: Uses fallback time-of-day logic only
+- No previous records: Strongly favors check-in (first record always check-in)
+- Multiple same-direction records: Suggests opposite direction
+- Events far from shift: Lower confidence but still returns best guess
 
 This eliminates the need for separate entry/exit devices or manual direction selection.
 

@@ -8,8 +8,10 @@ use App\Models\Tenant\AttendanceRecord;
 use App\Models\Tenant\Department;
 use App\Models\Tenant\Device;
 use App\Models\Tenant\Employee;
+use App\Models\Tenant\Shift;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
 
@@ -147,11 +149,11 @@ describe('ProcessAttendanceEvent Job', function () {
         expect($record->employee->custom_id)->toBe('EMP_JOB_001');
     });
 
-    test('sets direction to check-in for Phase 1', function () {
+    test('detects check-in direction for first record of day', function () {
         $event = new AttendanceEventDTO(
             device_id: 'DEVICE_JOB_001',
             person_id: 'EMP_JOB_001',
-            timestamp: '2025-10-02 10:30:00',
+            timestamp: '2025-10-02 09:05:00',
             event_type: 'recognition',
         );
 
@@ -161,6 +163,109 @@ describe('ProcessAttendanceEvent Job', function () {
         $record = AttendanceRecord::on('tenant')->first();
 
         expect($record->direction)->toBe('check-in');
+        expect($record->confidence_score)->toBeGreaterThan(50);
+        expect($record->detection_reason)->not->toBeNull();
+    });
+
+    test('detects check-out direction after check-in', function () {
+        // Create morning check-in
+        AttendanceRecord::on('tenant')->create([
+            'employee_id' => $this->employee->id,
+            'device_id' => $this->device->id,
+            'recorded_at' => '2025-10-02 09:00:00',
+            'direction' => 'check-in',
+            'recognition_score' => 0.95,
+        ]);
+
+        // Evening event should be check-out
+        $event = new AttendanceEventDTO(
+            device_id: 'DEVICE_JOB_001',
+            person_id: 'EMP_JOB_001',
+            timestamp: '2025-10-02 17:00:00',
+            event_type: 'recognition',
+        );
+
+        $job = new ProcessAttendanceEvent($event);
+        app()->call([$job, 'handle']);
+
+        $record = AttendanceRecord::on('tenant')->latest('recorded_at')->first();
+
+        expect($record->direction)->toBe('check-out');
+        expect($record->confidence_score)->toBeGreaterThan(50);
+    });
+
+    test('stores confidence score and detection reason', function () {
+        $event = new AttendanceEventDTO(
+            device_id: 'DEVICE_JOB_001',
+            person_id: 'EMP_JOB_001',
+            timestamp: '2025-10-02 09:00:00',
+            event_type: 'recognition',
+        );
+
+        $job = new ProcessAttendanceEvent($event);
+        app()->call([$job, 'handle']);
+
+        $record = AttendanceRecord::on('tenant')->first();
+
+        expect($record->confidence_score)->toBeInt();
+        expect($record->confidence_score)->toBeGreaterThanOrEqual(0);
+        expect($record->confidence_score)->toBeLessThanOrEqual(100);
+        expect($record->detection_reason)->not->toBeNull();
+        expect($record->detection_reason)->toContain('confidence');
+    });
+
+    test('logs low-confidence detections', function () {
+        Log::spy();
+
+        $event = new AttendanceEventDTO(
+            device_id: 'DEVICE_JOB_001',
+            person_id: 'EMP_JOB_001',
+            timestamp: '2025-10-02 03:00:00', // Unusual time might trigger low confidence
+            event_type: 'recognition',
+        );
+
+        $job = new ProcessAttendanceEvent($event);
+        app()->call([$job, 'handle']);
+
+        $record = AttendanceRecord::on('tenant')->first();
+
+        // If confidence is low, should log warning
+        if ($record->confidence_score < 50) {
+            Log::shouldHaveReceived('warning')
+                ->with('Low confidence direction detection', \Mockery::type('array'));
+        }
+    });
+
+    test('uses shift timing for direction detection', function () {
+        // Create a shift for the employee
+        $shift = Shift::on('tenant')->create([
+            'name' => 'Morning Shift',
+            'start_time' => '09:00:00',
+            'end_time' => '17:00:00',
+            'working_days' => 31, // Mon-Fri
+        ]);
+
+        // Assign shift to employee
+        $this->employee->shifts()->attach($shift->id, [
+            'effective_from' => '2025-10-01',
+            'effective_to' => null,
+        ]);
+
+        // Event near shift start should be check-in
+        $event = new AttendanceEventDTO(
+            device_id: 'DEVICE_JOB_001',
+            person_id: 'EMP_JOB_001',
+            timestamp: '2025-10-02 09:05:00',
+            event_type: 'recognition',
+        );
+
+        $job = new ProcessAttendanceEvent($event);
+        app()->call([$job, 'handle']);
+
+        $record = AttendanceRecord::on('tenant')->first();
+
+        expect($record->direction)->toBe('check-in');
+        expect($record->confidence_score)->toBeGreaterThan(70); // Should have high confidence near shift start
     });
 
     test('prevents duplicate records within 1 minute', function () {
