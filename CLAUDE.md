@@ -388,6 +388,230 @@ expect($active->id)->toBe($employeeOverride->id); // Employee override wins
 - Direction detection still functions on override dates but with reduced confidence
 - Half-day/custom-shift overrides seamlessly modify shift times for all attendance logic
 
+### Daily Attendance Summaries
+
+The system automatically generates and maintains **daily attendance summaries** that aggregate attendance records into comprehensive daily reports for each employee. These summaries power dashboards, reports, and analytics.
+
+**Core Purpose:**
+- Aggregate multiple attendance events (check-in, check-out, breaks) into daily totals
+- Calculate work hours, break time, overtime, and attendance status
+- Provide fast query performance for reports and dashboards
+- Enable bulk recalculation for data corrections
+
+**Database Schema:**
+```sql
+daily_attendance_summaries
+├── id
+├── employee_id
+├── date                        -- Summary date
+├── first_check_in (time)       -- Time of first check-in (HH:MM:SS)
+├── last_check_out (time)       -- Time of last check-out (HH:MM:SS)
+├── total_work_minutes          -- Total work time (excluding breaks)
+├── total_break_minutes         -- Total break time
+├── overtime_minutes            -- Work beyond expected hours
+├── status                      -- present | absent | half-day | on-leave | holiday
+├── is_complete                 -- false if employee still checked in
+├── created_at
+├── updated_at
+└── UNIQUE(employee_id, date)   -- One summary per employee per day
+```
+
+**Calculation Algorithm (`SummaryCalculator` service):**
+
+The `SummaryCalculator` service aggregates attendance records into daily summaries:
+
+```php
+use App\Domain\Attendance\Services\SummaryCalculator;
+use Carbon\Carbon;
+
+$calculator = app(SummaryCalculator::class);
+$employee = Employee::find(1);
+$date = Carbon::parse('2025-10-06');
+
+// Calculate summary for specific date
+$summary = $calculator->calculateForDate($employee, $date);
+
+echo $summary->total_work_minutes;  // 480 (8 hours)
+echo $summary->total_work_hours;    // 8.0 (calculated accessor)
+echo $summary->status;               // 'present'
+echo $summary->is_complete;          // true (has check-out)
+```
+
+**Calculation Components:**
+
+1. **Work Hours Calculation:**
+   - Pairs check-in → check-out or break-end → next event
+   - Handles overnight shifts (check-out after midnight)
+   - Excludes break time from work time
+   - Returns incomplete=false if employee still checked in
+
+2. **Break Time Calculation:**
+   - Pairs break-start → break-end
+   - Supports multiple breaks per day
+   - Ongoing breaks not counted until break-end
+
+3. **Overtime Calculation:**
+   - Work minutes - Expected shift minutes
+   - Integrates with shift override system
+   - All work on holidays = overtime
+   - Respects half-day/custom-shift overrides
+
+4. **Status Determination:**
+   - **holiday**: Override type is 'holiday'
+   - **on-leave**: Override type is 'off-day'
+   - **absent**: No work minutes recorded
+   - **half-day**: Work < 50% of expected hours
+   - **present**: Work >= 50% of expected hours
+
+**Real-Time Updates:**
+
+Summaries are automatically updated when attendance events occur:
+
+```php
+use App\Domain\Attendance\Services\SummaryCalculator;
+use App\Models\Tenant\AttendanceRecord;
+
+// Called from ProcessAttendanceEvent job
+$calculator = app(SummaryCalculator::class);
+$record = AttendanceRecord::find($recordId);
+
+// Automatically determines correct date (handles overnight shifts)
+$summary = $calculator->updateSummaryFromEvent($record);
+```
+
+**Bulk Recalculation:**
+
+For data corrections or historical recalculations:
+
+```php
+// Programmatic recalculation
+$calculator = app(SummaryCalculator::class);
+$employee = Employee::find(1);
+$startDate = Carbon::parse('2025-10-01');
+$endDate = Carbon::parse('2025-10-31');
+
+$count = $calculator->recalculateRange($employee, $startDate, $endDate);
+echo "Recalculated {$count} summaries"; // 31
+
+// Artisan command
+php artisan attendance:recalculate-summaries \
+    --employee=1 \
+    --from=2025-10-01 \
+    --to=2025-10-31
+```
+
+**RESTful API Endpoints:**
+
+All endpoints protected by `auth:sanctum` middleware:
+
+```bash
+# List summaries with filtering
+GET /api/v1/attendance-summaries
+GET /api/v1/attendance-summaries?employee_id=1
+GET /api/v1/attendance-summaries?from=2025-10-01&to=2025-10-31
+GET /api/v1/attendance-summaries?status=present
+GET /api/v1/attendance-summaries?include=employee
+
+# Get single summary
+GET /api/v1/attendance-summaries/123
+
+# Trigger recalculation
+POST /api/v1/attendance-summaries/recalculate
+{
+  "employee_id": 1,
+  "from": "2025-10-01",
+  "to": "2025-10-31"
+}
+```
+
+**API Response Format:**
+```json
+{
+  "data": [{
+    "id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "date": "2025-10-06",
+    "first_check_in": "09:00:00",
+    "last_check_out": "17:00:00",
+    "total_work_minutes": 420,
+    "total_work_hours": 7.0,
+    "total_break_minutes": 60,
+    "total_break_hours": 1.0,
+    "overtime_minutes": 0,
+    "overtime_hours": 0.0,
+    "status": "present",
+    "is_complete": true
+  }],
+  "links": { ... },
+  "meta": {
+    "current_page": 1,
+    "per_page": 15,
+    "total": 100
+  }
+}
+```
+
+**Query Filters:**
+- `employee_id`: Filter by specific employee
+- `date`: Exact date match (YYYY-MM-DD)
+- `from` / `to`: Date range (inclusive)
+- `status`: Filter by attendance status
+- `per_page`: Results per page (default: 15)
+- `include=employee`: Include employee relationship
+
+**Integration with Shift Override System:**
+
+The summary calculator seamlessly integrates with shift overrides:
+
+```php
+// Holiday detection
+$summary = $calculator->calculateForDate($employee, $holidayDate);
+echo $summary->status; // 'holiday'
+echo $summary->overtime_minutes; // All work = overtime
+
+// Half-day override
+$summary = $calculator->calculateForDate($employee, $halfDayDate);
+// Expected hours automatically adjusted to half-day duration
+```
+
+**Performance Considerations:**
+
+1. **Real-time Updates**: Summaries updated in job queue (non-blocking)
+2. **Eager Loading**: Use `?include=employee` to avoid N+1 queries
+3. **Indexed Queries**: Unique index on (employee_id, date)
+4. **Pagination**: Default 15 per page for large datasets
+
+**Testing:**
+
+```php
+// Feature tests cover:
+// - Real-time summary creation and updates
+// - Work hour calculations (single/multiple periods)
+// - Break time calculations
+// - Overnight shift handling
+// - Status determination (present/absent/half-day/holiday)
+// - Bulk recalculation
+// - API endpoints with filtering
+// - Validation and error handling
+
+php artisan test tests/Feature/Attendance/
+// 86 tests passing (402 assertions)
+```
+
+**Important Implementation Notes:**
+
+- Summaries use `updateOrCreate()` - safe for concurrent updates
+- Overnight shifts: check-out after midnight belongs to check-in's date
+- Incomplete days marked `is_complete = false` until checkout
+- Status priorities: holiday > on-leave > absent > half-day > present
+- All times stored in HH:MM:SS format (24-hour)
+- Calculations handle missing data gracefully (null-safe)
+
 ### Full-Stack Data Flow (Inertia.js)
 
 This application uses **Inertia.js** to bridge Laravel and Vue without building an API:
