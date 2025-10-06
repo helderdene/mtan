@@ -18,6 +18,20 @@ class SyncEmployeeToDevices implements ShouldQueue
     use Queueable;
 
     /**
+     * The number of times the job may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+
+    /**
+     * The number of seconds the job can run before timing out.
+     *
+     * @var int
+     */
+    public $timeout = 60;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -25,8 +39,8 @@ class SyncEmployeeToDevices implements ShouldQueue
         public string $tenantId,
         public string $action = 'add'  // 'add' or 'edit'
     ) {
-        // Set the queue for this job
-        $this->onQueue('default');
+        // Set the queue for this job (default priority for device sync operations)
+        $this->onQueue(env('QUEUE_DEFAULT', 'attendance-default'));
     }
 
     /**

@@ -1284,27 +1284,191 @@ app/
 
 ### Queue Architecture
 
-**Queue Priority Levels**:
-- `attendance-high-priority` - Real-time attendance events (QoS 2 from MQTT)
-- `attendance-default` - Stranger logs, device status updates
-- `reporting` - Long-running report generation
-- `notifications` - Email/SMS notifications
+The system uses **Redis-based queue priority processing** with Supervisor workers for handling different workload types efficiently.
 
-**Queue Workers Configuration**:
+**Queue Priority Levels**:
+- `attendance-high-priority` - Real-time attendance events from MQTT (30s timeout, 3 workers)
+- `attendance-default` - Device sync, stranger logs (60s timeout, 2 workers)
+- `reporting` - Long-running report generation (300s timeout, 1 worker)
+- `notifications` - Email/SMS notifications (30s timeout, 2 workers)
+
+**Redis Configuration**:
+```php
+// config/database.php - Dedicated Redis database for queues
+'queue' => [
+    'host' => env('REDIS_HOST', '127.0.0.1'),
+    'port' => env('REDIS_PORT', '6379'),
+    'database' => env('REDIS_QUEUE_DB', '2'),  // Separate from cache (DB 1)
+    'max_retries' => 3,
+    'backoff_algorithm' => 'decorrelated_jitter',
+]
+
+// config/queue.php - Redis connection settings
+'redis' => [
+    'driver' => 'redis',
+    'connection' => env('REDIS_QUEUE_CONNECTION', 'queue'),
+    'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+    'block_for' => (int) env('REDIS_QUEUE_BLOCK_FOR', 5),
+]
+```
+
+**Supervisor Configuration** (`supervisor/` directory):
+
 ```bash
-# Start multiple queue workers with Supervisor
-php artisan queue:work redis --queue=attendance-high-priority --tries=3 --timeout=60
-php artisan queue:work redis --queue=attendance-default --tries=3 --timeout=90
-php artisan queue:work redis --queue=reporting --tries=1 --timeout=300
+# High Priority Workers (3 processes)
+supervisor/attendance-high-priority-worker.conf
+  - Handles: ProcessAttendanceEvent jobs
+  - Timeout: 30 seconds
+  - Tries: 3
+  - Workers: 3 concurrent processes
+  - Priority: Highest (real-time processing)
+
+# Default Priority Workers (2 processes)
+supervisor/attendance-default-worker.conf
+  - Handles: SyncEmployeeToDevices, device status
+  - Timeout: 60 seconds
+  - Tries: 3
+  - Workers: 2 concurrent processes
+
+# Notification Workers (2 processes)
+supervisor/notification-worker.conf
+  - Handles: ViolationNotification, CorrectionNotification, DailyDigest
+  - Timeout: 30 seconds
+  - Tries: 3
+  - Workers: 2 concurrent processes
+
+# Reporting Workers (1 process)
+supervisor/reporting-worker.conf
+  - Handles: Long-running reports
+  - Timeout: 300 seconds (5 minutes)
+  - Tries: 1
+  - Workers: 1 process
+```
+
+**Job Assignment**:
+```php
+// ProcessAttendanceEvent.php
+public $tries = 3;
+public $timeout = 30;
+$this->onQueue(config('queue.connections.redis.queue', 'attendance-high-priority'));
+
+// SyncEmployeeToDevices.php
+public $tries = 3;
+public $timeout = 60;
+$this->onQueue(env('QUEUE_DEFAULT', 'attendance-default'));
+
+// ViolationNotification.php (and all notifications)
+public $tries = 3;
+public $timeout = 30;
+$this->onQueue(env('QUEUE_NOTIFICATIONS', 'notifications'));
+```
+
+**Queue Monitoring**:
+
+```bash
+# Manual monitoring
+php artisan queue:monitor --alert
+
+# Output:
+Queue Monitoring Report - 2025-10-06 15:00:00
+
+attendance-high-priority  | Size: 5      | Status: ✓ OK
+attendance-default        | Size: 12     | Status: ✓ OK
+notifications             | Size: 150    | Status: ⚠ WARNING
+reporting                 | Size: 2      | Status: ✓ OK
+
+# Scheduled monitoring (every 5 minutes)
+# app/Console/Kernel.php
+$schedule->command('queue:monitor --alert')->everyFiveMinutes();
+```
+
+**Queue Metrics API**:
+
+```bash
+# Get all queue metrics
+GET /api/v1/queue/metrics
+
+# Response:
+{
+  "metrics": [
+    {
+      "queue": "attendance-high-priority",
+      "size": 5,
+      "failed_jobs": 0,
+      "status": "healthy"
+    },
+    {
+      "queue": "notifications",
+      "size": 150,
+      "status": "warning"
+    }
+  ],
+  "timestamp": "2025-10-06T15:00:00Z",
+  "total_jobs": 169,
+  "total_failed": 0
+}
+
+# Get specific queue metrics
+GET /api/v1/queue/metrics/attendance-high-priority
+```
+
+**Environment Variables**:
+
+```bash
+# Queue Configuration
+QUEUE_CONNECTION=redis
+QUEUE_HIGH_PRIORITY=attendance-high-priority
+QUEUE_DEFAULT=attendance-default
+QUEUE_REPORTING=reporting
+QUEUE_NOTIFICATIONS=notifications
+
+# Redis Queue Settings
+REDIS_QUEUE_CONNECTION=queue
+REDIS_QUEUE_DB=2
+REDIS_QUEUE_RETRY_AFTER=90
+REDIS_QUEUE_BLOCK_FOR=5
+
+# Worker Settings
+QUEUE_HIGH_PRIORITY_WORKERS=3
+QUEUE_HIGH_PRIORITY_TIMEOUT=30
+QUEUE_DEFAULT_WORKERS=2
+QUEUE_DEFAULT_TIMEOUT=60
+QUEUE_NOTIFICATION_WORKERS=2
+QUEUE_REPORTING_WORKERS=1
+QUEUE_REPORTING_TIMEOUT=300
+
+# Monitoring
+QUEUE_SIZE_WARNING_THRESHOLD=100
+QUEUE_SIZE_CRITICAL_THRESHOLD=500
+```
+
+**Deployment** (Production):
+
+```bash
+# Deploy Supervisor configuration
+cd /var/www/html
+sudo bash supervisor/deploy.sh
+
+# Verify workers are running
+supervisorctl status
+
+# View logs
+supervisorctl tail -f attendance-high-priority-worker:attendance-high-priority-worker_00
+
+# Restart workers after code deployment
+supervisorctl restart attendance-high-priority-worker:*
+supervisorctl restart attendance-default-worker:*
+supervisorctl restart notification-worker:*
+supervisorctl restart reporting-worker:*
 ```
 
 **Critical Jobs**:
-- `ProcessAttendanceEvent` - Main attendance processing logic
-- `UpdateDailySummary` - Recalculates daily attendance summaries
-- `SendViolationNotifications` - Alerts managers of violations
-- `TriggerAttendanceWebhooks` - External system notifications
-- `ProcessStrangerEvent` - Logs unrecognized faces
-- `UpdateDeviceStatus` - Device health monitoring
+- `ProcessAttendanceEvent` - Main attendance processing logic (high-priority)
+- `SyncEmployeeToDevices` - Device sync operations (default)
+- `ViolationNotification` - Alerts managers of violations (notifications)
+- `CorrectionRequestedNotification` - Manager correction alerts (notifications)
+- `DailyViolationDigest` - Daily digest emails (notifications)
+- Report generation jobs - Long-running reports (reporting)
 
 ### Key Features
 

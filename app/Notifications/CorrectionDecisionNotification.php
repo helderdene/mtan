@@ -12,10 +12,24 @@ class CorrectionDecisionNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * The number of times the notification may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+
+    /**
+     * The number of seconds before the job should timeout.
+     *
+     * @var int
+     */
+    public $timeout = 30;
+
     public function __construct(
         public AttendanceCorrection $correction
     ) {
-        $this->queue = 'notifications';
+        $this->onQueue(env('QUEUE_NOTIFICATIONS', 'notifications'));
     }
 
     /**

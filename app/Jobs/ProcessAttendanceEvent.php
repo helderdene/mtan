@@ -20,13 +20,27 @@ class ProcessAttendanceEvent implements ShouldQueue
     use Queueable;
 
     /**
+     * The number of times the job may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+
+    /**
+     * The number of seconds the job can run before timing out.
+     *
+     * @var int
+     */
+    public $timeout = 30;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
         public AttendanceEventDTO $event
     ) {
-        // Set the queue for this job
-        $this->onQueue('attendance');
+        // Set the queue for this job (high priority for real-time attendance events)
+        $this->onQueue(config('queue.connections.redis.queue', 'attendance-high-priority'));
     }
 
     /**
