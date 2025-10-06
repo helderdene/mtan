@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Schedule missing checkout detection to run daily at 2:00 AM
 Schedule::command('violations:detect-missing-checkouts')->dailyAt('02:00');
+
+// Schedule daily violation digest to run daily at 8:00 AM
+Schedule::command('notifications:send-daily-violation-digest')->dailyAt('08:00');

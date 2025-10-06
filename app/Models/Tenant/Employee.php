@@ -37,6 +37,7 @@ class Employee extends Model
         'phone',
         'avatar',
         'department_id',
+        'manager_id',
         'is_active',
         'hired_at',
     ];
@@ -132,6 +133,14 @@ class Employee extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Relationship: Employee belongs to a manager (User)
+     */
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'manager_id');
     }
 
     /**

@@ -612,6 +612,195 @@ php artisan test tests/Feature/Attendance/
 - All times stored in HH:MM:SS format (24-hour)
 - Calculations handle missing data gracefully (null-safe)
 
+### Real-Time Violation Notifications
+
+The system automatically sends email notifications to managers when violations are detected, with configurable preferences and daily digest support.
+
+**Core Components:**
+
+1. **NotificationPreference Model** (`app/Models/NotificationPreference.php`)
+   - Stores per-user notification settings
+   - Supports severity filtering (minimum threshold)
+   - Two notification types: `violation_immediate` and `violation_digest`
+   - Auto-created with default settings when user first needs it
+
+2. **ViolationNotification** (`app/Notifications/ViolationNotification.php`)
+   - Queued notification sent when violation detected
+   - Type-specific email content (late arrival, early departure, extended break, missing checkout)
+   - Severity-based email subject with emoji indicators
+   - Includes violation details and "View Details" action button
+
+3. **DailyViolationDigest** (`app/Notifications/DailyViolationDigest.php`)
+   - Daily summary email with statistics
+   - Breakdown by type and severity
+   - Lists up to 20 violations with "...and X more" indicator
+   - Scheduled to run daily at 8:00 AM
+
+**Manager Assignment:**
+
+Employees can be assigned a manager via the `manager_id` foreign key:
+
+```php
+$employee = Employee::find(1);
+$employee->manager_id = $managerUser->id;
+$employee->save();
+
+// Access manager
+$manager = $employee->manager; // User instance
+$managedEmployees = $managerUser->employees; // Collection of employees
+```
+
+**Notification Flow:**
+
+```
+Violation Created
+    ↓
+ViolationDetected Event Dispatched
+    ↓
+SendViolationNotification Listener
+    ↓
+Check Manager Assignment
+    ↓
+Check Notification Preferences
+    ↓
+Filter by Severity Threshold
+    ↓
+Send ViolationNotification (queued)
+```
+
+**Notification Preferences:**
+
+```php
+use App\Models\NotificationPreference;
+
+// Create preference for immediate notifications
+NotificationPreference::create([
+    'user_id' => $manager->id,
+    'notification_type' => 'violation_immediate',
+    'settings' => [
+        'minimum_severity' => 'major', // Only major and critical
+    ],
+    'enabled' => true,
+]);
+
+// Create preference for daily digest
+NotificationPreference::create([
+    'user_id' => $manager->id,
+    'notification_type' => 'violation_digest',
+    'settings' => [
+        'minimum_severity' => 'moderate', // Moderate, major, critical
+    ],
+    'enabled' => true,
+]);
+
+// Check if notification should be sent
+$preference = NotificationPreference::where('user_id', $manager->id)
+    ->where('notification_type', 'violation_immediate')
+    ->first();
+
+if ($preference && $preference->shouldNotifyForSeverity('minor')) {
+    // Send notification
+}
+```
+
+**Daily Digest Command:**
+
+```bash
+# Send daily digest for yesterday (default)
+php artisan notifications:send-daily-violation-digest
+
+# Send digest for specific date
+php artisan notifications:send-daily-violation-digest --date=2025-10-06
+
+# Scheduled automatically at 8:00 AM (see routes/console.php)
+```
+
+**Email Configuration:**
+
+Production email setup in `.env`:
+
+```env
+# AWS SES
+MAIL_MAILER=ses
+AWS_ACCESS_KEY_ID=your-ses-key
+AWS_SECRET_ACCESS_KEY=your-ses-secret
+AWS_DEFAULT_REGION=us-east-1
+
+# Or Postmark
+MAIL_MAILER=postmark
+POSTMARK_TOKEN=your-postmark-token
+
+# Or SMTP (Gmail, Outlook, etc.)
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_ENCRYPTION=tls
+
+# From address
+MAIL_FROM_ADDRESS="noreply@example.com"
+MAIL_FROM_NAME="Attendance Monitor"
+```
+
+**Queue Configuration:**
+
+Notifications are queued on the `notifications` queue:
+
+```bash
+# Start queue worker for notifications
+php artisan queue:work redis --queue=notifications --tries=3 --timeout=60
+
+# Or use the notifications queue in priority
+php artisan queue:work redis --queue=attendance-high-priority,attendance-default,notifications
+```
+
+**Testing Notifications:**
+
+```php
+// Feature tests cover:
+// - Manager receives notification on violation creation
+// - Severity filtering respects minimum thresholds
+// - Notifications disabled when preferences disabled
+// - No notification when employee has no manager
+// - Default preference auto-creation
+// - Daily digest command sends to correct managers
+// - Digest filters violations by date and severity
+// - Multiple managers receive separate digests
+
+php artisan test tests/Feature/Notifications/
+// 10 tests passing (20 assertions)
+```
+
+**Integration Example:**
+
+```php
+use App\Events\ViolationDetected;
+use App\Domain\Attendance\Models\AttendanceViolation;
+
+// After violation is created
+$violation = AttendanceViolation::create([...]);
+
+// Dispatch event - listener handles notification logic
+event(new ViolationDetected($violation));
+
+// Listener automatically:
+// 1. Finds employee's manager
+// 2. Checks notification preferences
+// 3. Filters by severity threshold
+// 4. Sends queued notification if appropriate
+```
+
+**Important Notes:**
+
+- Notification preferences auto-created with enabled=true defaults
+- Severity hierarchy: minor < moderate < major < critical
+- Missing manager assignment = no notification (logged as info)
+- Preferences disabled = no notification
+- Notifications queued for async processing (non-blocking)
+- Email templates use Laravel's beautiful default mail template
+- Scheduled digest runs daily at 8:00 AM via Laravel scheduler
+
 ### Full-Stack Data Flow (Inertia.js)
 
 This application uses **Inertia.js** to bridge Laravel and Vue without building an API:

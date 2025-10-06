@@ -59,6 +59,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's notification preferences.
+     */
+    public function notificationPreferences()
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
+    /**
+     * Get the employees managed by this user.
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'manager_id');
+    }
+
+    /**
      * Check if user is a super admin.
      */
     public function isSuperAdmin(): bool

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('daily_summary_id')->nullable()->constrained('daily_attendance_summaries')->onDelete('set null');
             $table->date('violation_date');
             $table->enum('type', ['late_arrival', 'early_departure', 'extended_break', 'missing_checkout']);
-            $table->enum('severity', ['minor', 'moderate', 'major']);
+            $table->enum('severity', ['minor', 'moderate', 'major', 'critical']);
             $table->integer('minutes_deviation')->unsigned();
             $table->json('metadata')->nullable();
             $table->enum('status', ['pending', 'acknowledged', 'disputed', 'resolved'])->default('pending');
