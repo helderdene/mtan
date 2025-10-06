@@ -3,6 +3,7 @@
 namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\Models\DailyAttendanceSummary;
+use App\Domain\Shift\Services\FlexibleShiftValidator;
 use App\Domain\Shift\Services\OverrideService;
 use App\Models\Tenant\AttendanceRecord;
 use App\Models\Tenant\Employee;
@@ -27,7 +28,8 @@ class SummaryCalculator
     private const HALF_DAY_THRESHOLD = 0.5;
 
     public function __construct(
-        private readonly OverrideService $overrideService = new OverrideService()
+        private readonly OverrideService $overrideService = new OverrideService(),
+        private readonly FlexibleShiftValidator $flexibleShiftValidator = new FlexibleShiftValidator()
     ) {
     }
 
@@ -328,15 +330,34 @@ class SummaryCalculator
             $expectedMinutes = $effectiveShift?->getDurationMinutes() ?? self::DEFAULT_SHIFT_MINUTES;
         } elseif ($shift) {
             // Tenant\Shift model - calculate duration directly
-            $startTime = Carbon::parse($shift->start_time);
-            $endTime = Carbon::parse($shift->end_time);
 
-            // Handle overnight shifts
-            if ($endTime->lt($startTime)) {
-                $endTime->addDay();
+            // For flexible shifts, use the actual check-in time to calculate expected hours
+            if ($shift->isFlexible()) {
+                $firstCheckIn = AttendanceRecord::where('employee_id', $employee->id)
+                    ->whereDate('recorded_at', $date)
+                    ->where('direction', 'check-in')
+                    ->orderBy('recorded_at')
+                    ->first();
+
+                if ($firstCheckIn) {
+                    $expectedHours = $this->flexibleShiftValidator->calculateExpectedHours($shift, $firstCheckIn->recorded_at);
+                    $expectedMinutes = $expectedHours * 60;
+                } else {
+                    // No check-in found, use core hours requirement
+                    $expectedMinutes = ($shift->core_hours_required ?? 8) * 60;
+                }
+            } else {
+                // Fixed shift - calculate duration from start/end times
+                $startTime = Carbon::parse($shift->start_time);
+                $endTime = Carbon::parse($shift->end_time);
+
+                // Handle overnight shifts
+                if ($endTime->lt($startTime)) {
+                    $endTime->addDay();
+                }
+
+                $expectedMinutes = $startTime->diffInMinutes($endTime);
             }
-
-            $expectedMinutes = $startTime->diffInMinutes($endTime);
         } else {
             $expectedMinutes = self::DEFAULT_SHIFT_MINUTES;
         }

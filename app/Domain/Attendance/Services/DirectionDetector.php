@@ -5,6 +5,7 @@ namespace App\Domain\Attendance\Services;
 use App\Domain\Attendance\DTOs\DirectionResult;
 use App\Domain\Shift\Models\Shift;
 use App\Domain\Shift\Models\Employee;
+use App\Domain\Shift\Services\FlexibleShiftValidator;
 use App\Domain\Shift\Services\OverrideService;
 use App\Models\Tenant\AttendanceRecord;
 use Carbon\Carbon;
@@ -83,6 +84,13 @@ class DirectionDetector
     protected OverrideService $overrideService;
 
     /**
+     * Flexible shift validator service
+     *
+     * @var FlexibleShiftValidator
+     */
+    protected FlexibleShiftValidator $flexibleShiftValidator;
+
+    /**
      * Cache for last attendance records (prevents duplicate queries in same request)
      *
      * @var array
@@ -94,6 +102,7 @@ class DirectionDetector
      *
      * @param PatternAnalyzer|null $patternAnalyzer Pattern analyzer service (optional, will be auto-injected)
      * @param OverrideService|null $overrideService Override service (optional, will be auto-injected)
+     * @param FlexibleShiftValidator|null $flexibleShiftValidator Flexible shift validator (optional, will be auto-injected)
      * @param array $weights Custom scoring weights (optional). Defaults:
      *                       - last_record: 30%
      *                       - shift_timing: 35%
@@ -103,10 +112,12 @@ class DirectionDetector
     public function __construct(
         ?PatternAnalyzer $patternAnalyzer = null,
         ?OverrideService $overrideService = null,
+        ?FlexibleShiftValidator $flexibleShiftValidator = null,
         array $weights = []
     ) {
         $this->patternAnalyzer = $patternAnalyzer ?? new PatternAnalyzer();
         $this->overrideService = $overrideService ?? new OverrideService();
+        $this->flexibleShiftValidator = $flexibleShiftValidator ?? new FlexibleShiftValidator();
 
         $this->weights = array_merge([
             'last_record' => 30,    // Logical flow: what should come after last action
@@ -335,6 +346,38 @@ class DirectionDetector
             'break-end' => 0,
         ];
 
+        // Handle flexible shifts
+        if ($shift->isFlexible()) {
+            // For flexible shifts, check-in can be anywhere within the flexible window
+            $earliestCheckIn = $this->flexibleShiftValidator->getEarliestCheckInTime($shift, $timestamp);
+            $latestCheckIn = $this->flexibleShiftValidator->getLatestCheckInTime($shift, $timestamp);
+
+            if ($earliestCheckIn && $latestCheckIn) {
+                // Score check-in highly if within flexible window
+                if ($timestamp->between($earliestCheckIn, $latestCheckIn)) {
+                    $scores['check-in'] = 100;
+                } else {
+                    // Penalize if outside window
+                    $scores['check-in'] = 20;
+                }
+
+                // Calculate expected end time based on flexible shift duration
+                $expectedEndTime = $this->flexibleShiftValidator->calculateExpectedEndTime($shift, $timestamp);
+                $minutesFromExpectedEnd = abs($timestamp->diffInMinutes($expectedEndTime));
+
+                if ($minutesFromExpectedEnd <= 30) {
+                    $scores['check-out'] = 100 - ($minutesFromExpectedEnd * 2);
+                }
+            }
+
+            // Break scoring remains the same for flexible shifts
+            if ($shift->break_start && $shift->break_end) {
+                $this->scoreBreakTimes($timestamp, $shift, $scores);
+            }
+
+            return $scores;
+        }
+
         // Use effective shift times if override is present, otherwise use regular shift
         if ($effectiveShift) {
             $shiftStart = $effectiveShift->startTime;
@@ -377,21 +420,34 @@ class DirectionDetector
 
         // Break scoring (if shift has break times)
         if ($shift->break_start && $shift->break_end) {
-            $breakStart = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->break_start);
-            $breakEnd = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->break_end);
-
-            $minutesFromBreakStart = abs($timestamp->diffInMinutes($breakStart));
-            if ($minutesFromBreakStart <= 15) {
-                $scores['break-start'] = 100 - ($minutesFromBreakStart * 4);
-            }
-
-            $minutesFromBreakEnd = abs($timestamp->diffInMinutes($breakEnd));
-            if ($minutesFromBreakEnd <= 15) {
-                $scores['break-end'] = 100 - ($minutesFromBreakEnd * 4);
-            }
+            $this->scoreBreakTimes($timestamp, $shift, $scores);
         }
 
         return $scores;
+    }
+
+    /**
+     * Score break times for both flexible and fixed shifts
+     *
+     * @param Carbon $timestamp
+     * @param Shift $shift
+     * @param array &$scores
+     * @return void
+     */
+    protected function scoreBreakTimes(Carbon $timestamp, Shift $shift, array &$scores): void
+    {
+        $breakStart = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->break_start);
+        $breakEnd = Carbon::parse($timestamp->format('Y-m-d') . ' ' . $shift->break_end);
+
+        $minutesFromBreakStart = abs($timestamp->diffInMinutes($breakStart));
+        if ($minutesFromBreakStart <= 15) {
+            $scores['break-start'] = 100 - ($minutesFromBreakStart * 4);
+        }
+
+        $minutesFromBreakEnd = abs($timestamp->diffInMinutes($breakEnd));
+        if ($minutesFromBreakEnd <= 15) {
+            $scores['break-end'] = 100 - ($minutesFromBreakEnd * 4);
+        }
     }
 
     /**
