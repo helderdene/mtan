@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AttendanceCorrectionController;
 use App\Http\Controllers\Api\V1\AttendanceSummaryController;
 use App\Http\Controllers\Api\V1\ManagerCorrectionController;
 use App\Http\Controllers\Api\V1\QueueMetricsController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ShiftController;
 use App\Http\Controllers\Api\V1\ViolationController;
 use Illuminate\Http\Request;
@@ -60,5 +61,12 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::prefix('queue')->middleware(['auth:sanctum'])->group(function () {
         Route::get('metrics', [QueueMetricsController::class, 'index']);
         Route::get('metrics/{queue}', [QueueMetricsController::class, 'show']);
+    });
+
+    // Report Routes
+    Route::prefix('reports')->name('api.v1.reports.')->group(function () {
+        Route::post('attendance', [ReportController::class, 'attendanceReport'])->name('attendance');
+        Route::post('violations', [ReportController::class, 'violationReport'])->name('violations');
+        Route::get('download', [ReportController::class, 'downloadReport'])->name('download');
     });
 });
