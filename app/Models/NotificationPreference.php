@@ -13,11 +13,15 @@ class NotificationPreference extends Model
     protected $fillable = [
         'user_id',
         'notification_type',
+        'report_type',
+        'frequency',
+        'filters',
         'settings',
         'enabled',
     ];
 
     protected $casts = [
+        'filters' => 'array',
         'settings' => 'array',
         'enabled' => 'boolean',
     ];

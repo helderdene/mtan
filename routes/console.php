@@ -13,3 +13,12 @@ Schedule::command('violations:detect-missing-checkouts')->dailyAt('02:00');
 
 // Schedule daily violation digest to run daily at 8:00 AM
 Schedule::command('notifications:send-daily-violation-digest')->dailyAt('08:00');
+
+// Schedule daily reports to run every day at 6:00 AM
+Schedule::command('reports:send-scheduled --type=daily')->dailyAt('06:00');
+
+// Schedule weekly reports to run every Monday at 7:00 AM
+Schedule::command('reports:send-scheduled --type=weekly')->weeklyOn(1, '07:00');
+
+// Schedule monthly reports to run on the 1st of every month at 8:00 AM
+Schedule::command('reports:send-scheduled --type=monthly')->monthlyOn(1, '08:00');
