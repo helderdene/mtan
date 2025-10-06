@@ -20,6 +20,7 @@ class Employee extends Model
 
     protected $fillable = [
         'custom_id',
+        'user_id',
         'first_name',
         'last_name',
         'email',
@@ -122,6 +123,14 @@ class Employee extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Relationship: Employee belongs to a user account
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 
     /**

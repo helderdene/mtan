@@ -24,9 +24,10 @@ class AttendanceViolationFactory extends Factory
         return [
             'employee_id' => Employee::factory(),
             'attendance_record_id' => AttendanceRecord::factory(),
-            'violation_date' => $this->faker->date(),
+            'date' => $this->faker->date(),
             'type' => $this->faker->randomElement(['late_arrival', 'early_departure', 'extended_break', 'missing_checkout']),
             'severity' => $this->faker->randomElement(['minor', 'moderate', 'major', 'critical']),
+            'description' => $this->faker->sentence(),
             'minutes_deviation' => $this->faker->numberBetween(5, 120),
             'metadata' => [
                 'shift_start_time' => '09:00:00',

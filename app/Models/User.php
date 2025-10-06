@@ -67,11 +67,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the employee record associated with this user.
+     */
+    public function employee()
+    {
+        return $this->hasOne(\App\Models\Tenant\Employee::class, 'user_id');
+    }
+
+    /**
      * Get the employees managed by this user.
      */
     public function employees()
     {
-        return $this->hasMany(Employee::class, 'manager_id');
+        return $this->hasMany(\App\Models\Tenant\Employee::class, 'manager_id');
     }
 
     /**

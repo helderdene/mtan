@@ -35,6 +35,16 @@ Route::get('dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Manager Dashboard
+Route::get('dashboard/manager', [\App\Http\Controllers\Dashboard\DashboardController::class, 'manager'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.manager');
+
+// Employee Portal
+Route::get('employee/portal', function () {
+    return Inertia::render('Employee/Portal');
+})->middleware(['auth', 'verified'])->name('employee.portal');
+
 // Employee Management - Admin Routes
 Route::middleware(['auth', 'verified', 'tenant_admin'])->group(function () {
     Route::resource('employees', \App\Http\Controllers\EmployeeController::class);

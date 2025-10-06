@@ -4,7 +4,10 @@ use App\Http\Controllers\Api\FailedJobController;
 use App\Http\Controllers\Api\ShiftOverrideController;
 use App\Http\Controllers\Api\V1\AttendanceCorrectionController;
 use App\Http\Controllers\Api\V1\AttendanceSummaryController;
+use App\Http\Controllers\Api\V1\EmployeePortalController;
 use App\Http\Controllers\Api\V1\ManagerCorrectionController;
+use App\Http\Controllers\Api\V1\ManagerDashboardController;
+use App\Http\Controllers\Api\V1\ViolationActionController;
 use App\Http\Controllers\Api\V1\QueueMetricsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ShiftController;
@@ -51,11 +54,27 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('corrections', AttendanceCorrectionController::class);
     Route::get('corrections/{correction}/document', [AttendanceCorrectionController::class, 'downloadDocument']);
 
+    // Manager Dashboard Routes
+    Route::prefix('dashboard')->group(function () {
+        Route::get('manager/refresh', [ManagerDashboardController::class, 'refresh'])->name('api.dashboard.manager.refresh');
+        Route::get('manager/violations', [ViolationActionController::class, 'index'])->name('api.dashboard.manager.violations');
+        Route::post('manager/violations/{violation}/acknowledge', [ViolationActionController::class, 'acknowledge'])->name('api.dashboard.manager.acknowledge-violation');
+    });
+
     // Manager Correction Routes
     Route::prefix('manager')->group(function () {
         Route::get('corrections', [ManagerCorrectionController::class, 'index']);
         Route::post('corrections/{correction}/approve', [ManagerCorrectionController::class, 'approve']);
         Route::post('corrections/{correction}/reject', [ManagerCorrectionController::class, 'reject']);
+    });
+
+    // Employee Portal Routes
+    Route::prefix('employee')->group(function () {
+        Route::get('attendance/calendar', [EmployeePortalController::class, 'calendar']);
+        Route::get('attendance/daily/{date}', [EmployeePortalController::class, 'dailyDetail']);
+        Route::get('violations', [EmployeePortalController::class, 'violations']);
+        Route::post('violations/{id}/acknowledge', [EmployeePortalController::class, 'acknowledgeViolation']);
+        Route::post('violations/{id}/dispute', [EmployeePortalController::class, 'disputeViolation']);
     });
 
     // Queue Metrics Routes (Admin only)

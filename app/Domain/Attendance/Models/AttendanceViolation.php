@@ -19,19 +19,25 @@ class AttendanceViolation extends Model
         'employee_id',
         'attendance_record_id',
         'daily_summary_id',
-        'violation_date',
+        'date',
         'type',
         'severity',
+        'description',
         'minutes_deviation',
         'metadata',
         'status',
         'notes',
+        'acknowledged_at',
+        'disputed_at',
+        'dispute_reason',
     ];
 
     protected $casts = [
-        'violation_date' => 'date',
+        'date' => 'date',
         'metadata' => 'array',
         'minutes_deviation' => 'integer',
+        'acknowledged_at' => 'datetime',
+        'disputed_at' => 'datetime',
     ];
 
     /**
@@ -103,6 +109,6 @@ class AttendanceViolation extends Model
      */
     public function scopeDateRange($query, $from, $to)
     {
-        return $query->whereBetween('violation_date', [$from, $to]);
+        return $query->whereBetween('date', [$from, $to]);
     }
 }

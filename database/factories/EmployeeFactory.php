@@ -20,12 +20,12 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'employee_code' => strtoupper(fake()->unique()->lexify('EMP???')),
-            'custom_id' => 'EMP' . fake()->unique()->numberBetween(1000, 9999),
-            'name' => fake()->name(),
+            'custom_id' => 'EMP' . fake()->unique()->numberBetween(100000, 999999),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),
-            'joining_date' => fake()->dateTimeBetween('-2 years', 'now'),
+            'hired_at' => fake()->dateTimeBetween('-2 years', 'now'),
             'is_active' => true,
         ];
     }
