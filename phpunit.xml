@@ -27,6 +27,11 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="QUEUE_HIGH_PRIORITY" value="attendance-high-priority"/>
+        <env name="QUEUE_DEFAULT" value="attendance-default"/>
+        <env name="QUEUE_NOTIFICATIONS" value="notifications"/>
+        <env name="QUEUE_REPORTING" value="reporting"/>
+        <env name="REDIS_QUEUE_CONNECTION" value="queue"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
     </php>

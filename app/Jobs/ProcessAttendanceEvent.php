@@ -40,7 +40,7 @@ class ProcessAttendanceEvent implements ShouldQueue
         public AttendanceEventDTO $event
     ) {
         // Set the queue for this job (high priority for real-time attendance events)
-        $this->onQueue(config('queue.connections.redis.queue', 'attendance-high-priority'));
+        $this->onQueue(env('QUEUE_HIGH_PRIORITY', 'attendance-high-priority'));
     }
 
     /**
