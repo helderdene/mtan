@@ -34,6 +34,13 @@ class ProcessAttendanceEvent implements ShouldQueue
     public $timeout = 30;
 
     /**
+     * The maximum number of unhandled exceptions to allow before failing.
+     *
+     * @var int
+     */
+    public $maxExceptions = 3;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -41,6 +48,17 @@ class ProcessAttendanceEvent implements ShouldQueue
     ) {
         // Set the queue for this job (high priority for real-time attendance events)
         $this->onQueue(env('QUEUE_HIGH_PRIORITY', 'attendance-high-priority'));
+    }
+
+    /**
+     * Calculate the number of seconds to wait before retrying the job.
+     *
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        // Exponential backoff: 1 minute, 5 minutes, 15 minutes
+        return [60, 300, 900];
     }
 
     /**
@@ -321,13 +339,62 @@ class ProcessAttendanceEvent implements ShouldQueue
                 'notification' => $notificationData,
             ]);
         } catch (\Exception $e) {
+            $attempt = $this->attempts();
+            $maxTries = $this->tries;
+
             Log::channel('mqtt')->error('Failed to process attendance event', [
+                'attempt' => $attempt,
+                'max_tries' => $maxTries,
+                'will_retry' => $attempt < $maxTries,
+                'next_retry_in' => $attempt < $maxTries ? $this->backoff()[$attempt - 1] ?? 60 : null,
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
                 'trace' => $e->getTraceAsString(),
                 'event' => $this->event->toArray(),
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Handle a job failure.
+     *
+     * @param  \Throwable  $exception
+     * @return void
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::channel('failed_jobs')->critical('ProcessAttendanceEvent permanently failed after retries', [
+            'job_id' => $this->job->getJobId() ?? 'unknown',
+            'queue' => $this->job->getQueue() ?? 'unknown',
+            'attempts' => $this->attempts(),
+            'event_data' => $this->event->toArray(),
+            'custom_id' => $this->event->custom_id,
+            'device_id' => $this->event->device_id,
+            'timestamp' => $this->event->timestamp->toIso8601String(),
+            'error_message' => $exception->getMessage(),
+            'error_class' => get_class($exception),
+            'trace' => $exception->getTraceAsString(),
+        ]);
+
+        // Notify administrators of critical attendance data loss
+        try {
+            $adminEmail = config('mail.admin_email');
+            if ($adminEmail) {
+                \Notification::route('mail', $adminEmail)
+                    ->notify(new \App\Notifications\CriticalJobFailedNotification(
+                        jobType: 'ProcessAttendanceEvent',
+                        jobId: $this->job->getJobId() ?? 'unknown',
+                        attempts: $this->attempts(),
+                        exception: $exception,
+                        payload: $this->event->toArray()
+                    ));
+            }
+        } catch (\Exception $e) {
+            Log::channel('failed_jobs')->error('Failed to send critical job failure notification', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

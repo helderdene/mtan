@@ -113,4 +113,17 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Email Address
+    |--------------------------------------------------------------------------
+    |
+    | This email address will receive critical system alerts such as job
+    | failures, system errors, and other important notifications that
+    | require immediate attention from system administrators.
+    |
+    */
+
+    'admin_email' => env('MAIL_ADMIN_EMAIL', null),
+
 ];

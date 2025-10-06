@@ -135,6 +135,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'failed_jobs' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/failed-jobs.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

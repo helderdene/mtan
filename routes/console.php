@@ -25,3 +25,6 @@ Schedule::command('reports:send-scheduled --type=monthly')->monthlyOn(1, '08:00'
 
 // Schedule cleanup of old report files every day at 3:00 AM
 Schedule::command('reports:cleanup')->dailyAt('03:00');
+
+// Schedule pruning of old failed jobs (older than 7 days) weekly on Sunday at 2:00 AM
+Schedule::command('queue:prune-failed --hours=168')->weeklyOn(0, '02:00');

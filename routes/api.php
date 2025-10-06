@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\FailedJobController;
 use App\Http\Controllers\Api\ShiftOverrideController;
 use App\Http\Controllers\Api\V1\AttendanceCorrectionController;
 use App\Http\Controllers\Api\V1\AttendanceSummaryController;
@@ -68,5 +69,15 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
         Route::post('attendance', [ReportController::class, 'attendanceReport'])->name('attendance');
         Route::post('violations', [ReportController::class, 'violationReport'])->name('violations');
         Route::get('download', [ReportController::class, 'downloadReport'])->name('download');
+    });
+
+    // Failed Job Management Routes (Admin only)
+    Route::prefix('failed-jobs')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/', [FailedJobController::class, 'index']);
+        Route::get('/{id}', [FailedJobController::class, 'show']);
+        Route::post('/{id}/retry', [FailedJobController::class, 'retry']);
+        Route::post('/retry-all', [FailedJobController::class, 'retryAll']);
+        Route::delete('/{id}', [FailedJobController::class, 'destroy']);
+        Route::post('/prune', [FailedJobController::class, 'prune']);
     });
 });
