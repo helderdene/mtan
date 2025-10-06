@@ -22,3 +22,6 @@ Schedule::command('reports:send-scheduled --type=weekly')->weeklyOn(1, '07:00');
 
 // Schedule monthly reports to run on the 1st of every month at 8:00 AM
 Schedule::command('reports:send-scheduled --type=monthly')->monthlyOn(1, '08:00');
+
+// Schedule cleanup of old report files every day at 3:00 AM
+Schedule::command('reports:cleanup')->dailyAt('03:00');
