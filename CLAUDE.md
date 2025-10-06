@@ -1470,6 +1470,260 @@ supervisorctl restart reporting-worker:*
 - `DailyViolationDigest` - Daily digest emails (notifications)
 - Report generation jobs - Long-running reports (reporting)
 
+### Failed Job Handling and Retry Mechanism
+
+The system implements comprehensive failed job handling with automatic retry, exponential backoff, admin notifications, and management APIs.
+
+**Retry Configuration**:
+
+All critical jobs are configured with automatic retry and exponential backoff:
+
+```php
+// ProcessAttendanceEvent.php
+public $tries = 3;                    // Maximum retry attempts
+public $timeout = 30;                 // Job timeout in seconds
+public $maxExceptions = 3;            // Max unhandled exceptions
+
+public function backoff(): array
+{
+    return [60, 300, 900];            // Exponential backoff: 1min, 5min, 15min
+}
+
+public function failed(\Throwable $exception): void
+{
+    Log::channel('failed_jobs')->critical('Job permanently failed', [
+        'job_id' => $this->job->getJobId(),
+        'attempts' => $this->attempts(),
+        'error' => $exception->getMessage(),
+    ]);
+
+    // Notify admin
+    Notification::route('mail', config('mail.admin_email'))
+        ->notify(new CriticalJobFailedNotification(
+            jobType: 'ProcessAttendanceEvent',
+            jobId: $this->job->getJobId(),
+            attempts: $this->attempts(),
+            exception: $exception,
+            payload: $this->event->toArray()
+        ));
+}
+```
+
+**Retry Strategy**:
+1. **First retry**: 60 seconds after initial failure
+2. **Second retry**: 300 seconds (5 minutes) after second failure
+3. **Third retry**: 900 seconds (15 minutes) after third failure
+4. **Permanent failure**: After 3 attempts, job marked as failed and admin notified
+
+**Logging**:
+
+All retry attempts and failures are logged with comprehensive context:
+
+```php
+// Enhanced error logging in handle() method
+catch (\Exception $e) {
+    $attempt = $this->attempts();
+    $maxTries = $this->tries;
+
+    Log::channel('mqtt')->error('Failed to process attendance event', [
+        'attempt' => $attempt,
+        'max_tries' => $maxTries,
+        'will_retry' => $attempt < $maxTries,
+        'next_retry_in' => $this->backoff()[$attempt - 1] ?? 60,
+        'error' => $e->getMessage(),
+        'error_class' => get_class($e),
+        'trace' => $e->getTraceAsString(),
+        'event' => $this->event->toArray(),
+    ]);
+
+    throw $e;
+}
+```
+
+**Failed Job Model**:
+
+The `FailedJob` model provides programmatic access to failed jobs:
+
+```php
+use App\Models\FailedJob;
+
+// Query failed jobs
+$recentFailures = FailedJob::failedBetween(
+    Carbon::now()->subDays(7),
+    Carbon::now()
+)->get();
+
+// Filter by queue
+$highPriorityFailures = FailedJob::queue('attendance-high-priority')->get();
+
+// Access job details
+foreach ($recentFailures as $job) {
+    echo "Job: {$job->job_class}\n";
+    echo "Failed: {$job->failed_time_ago}\n";
+    echo "Queue: {$job->queue}\n";
+    echo "Error: {$job->exception}\n";
+    print_r($job->job_data);
+}
+```
+
+**CLI Commands**:
+
+Retry failed jobs via Artisan commands:
+
+```bash
+# Retry specific job by UUID
+php artisan queue:retry-failed abc123-def456-...
+
+# Retry all jobs for a specific queue (with confirmation)
+php artisan queue:retry-failed --queue=attendance-high-priority
+
+# Retry all failed jobs (with confirmation)
+php artisan queue:retry-failed --all
+```
+
+**API Endpoints**:
+
+Manage failed jobs via REST API (admin only):
+
+```bash
+# List failed jobs with filtering
+GET /api/v1/failed-jobs?queue=attendance-high-priority&from=2025-10-01&to=2025-10-06
+
+# Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "abc123-def456-...",
+      "queue": "attendance-high-priority",
+      "job_class": "App\\Jobs\\ProcessAttendanceEvent",
+      "job_data": {...},
+      "exception": "Connection timeout...",
+      "failed_at": "2025-10-06T10:30:00Z",
+      "failed_time_ago": "2 hours ago"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 15,
+    "per_page": 15
+  }
+}
+
+# View specific failed job
+GET /api/v1/failed-jobs/{id}
+
+# Retry specific job
+POST /api/v1/failed-jobs/{id}/retry
+
+# Retry all jobs (or queue-specific with ?queue=name)
+POST /api/v1/failed-jobs/retry-all
+
+# Delete failed job
+DELETE /api/v1/failed-jobs/{id}
+
+# Prune old failed jobs
+POST /api/v1/failed-jobs/prune?hours=168  # 7 days
+```
+
+**Admin Notifications**:
+
+When a job permanently fails after all retries, administrators receive an email alert:
+
+```
+Subject: 🚨 Critical Job Failure: ProcessAttendanceEvent
+
+Critical Job Failure Alert
+
+A critical job has permanently failed after 3 retry attempts.
+
+Job Details:
+- Type: ProcessAttendanceEvent
+- Job ID: abc123-def456-...
+- Attempts: 3
+- Error: Illuminate\Database\QueryException
+
+Error Message:
+```
+SQLSTATE[HY000]: Connection timeout
+```
+
+Payload:
+```json
+{
+  "custom_id": "EMP001",
+  "device_id": "DEV123",
+  "timestamp": "2025-10-06T10:30:00Z"
+}
+```
+
+Please investigate this failure immediately. Attendance data may have been lost.
+
+[View Failed Jobs] http://app.example.com/admin/failed-jobs
+
+You can retry failed jobs via:
+php artisan queue:retry-failed abc123-def456-...
+```
+
+**Scheduled Maintenance**:
+
+Old failed jobs are automatically pruned weekly:
+
+```php
+// routes/console.php
+Schedule::command('queue:prune-failed --hours=168')->weeklyOn(0, '02:00');
+```
+
+This removes failed jobs older than 7 days (168 hours) every Sunday at 2:00 AM.
+
+**Configuration**:
+
+```bash
+# .env
+MAIL_ADMIN_EMAIL=admin@example.com
+
+# config/mail.php
+'admin_email' => env('MAIL_ADMIN_EMAIL', null),
+
+# config/logging.php
+'failed_jobs' => [
+    'driver' => 'daily',
+    'path' => storage_path('logs/failed-jobs.log'),
+    'level' => env('LOG_LEVEL', 'debug'),
+    'days' => 14,
+],
+
+# config/queue.php
+'failed' => [
+    'driver' => 'database-uuids',
+    'database' => env('DB_CONNECTION', 'mysql'),
+    'table' => 'failed_jobs',
+],
+```
+
+**Monitoring**:
+
+```bash
+# View failed jobs log
+tail -f storage/logs/failed-jobs.log
+
+# Check failed jobs count
+php artisan queue:failed
+
+# Monitor specific queue failures
+watch -n 5 'php artisan queue:failed | grep attendance-high-priority'
+```
+
+**Best Practices**:
+
+1. **Always configure retry**: Set `$tries`, `$timeout`, `$maxExceptions` on all jobs
+2. **Implement backoff**: Use exponential backoff to avoid overwhelming external services
+3. **Add failed() method**: Handle permanent failures gracefully with logging and notifications
+4. **Monitor regularly**: Check failed_jobs table and logs daily
+5. **Investigate patterns**: If same job fails repeatedly, investigate root cause
+6. **Prune old jobs**: Prevent database bloat with scheduled pruning
+7. **Test failure scenarios**: Ensure jobs fail gracefully and retry correctly
+
 ### Key Features
 
 1. **Multi-Tenant Authentication**: Laravel Fortify with tenant-scoped users (login, registration, password reset, email verification, 2FA)
