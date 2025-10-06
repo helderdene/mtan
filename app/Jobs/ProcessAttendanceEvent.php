@@ -36,7 +36,8 @@ class ProcessAttendanceEvent implements ShouldQueue
         TenantDatabaseManager $manager,
         DirectionDetector $detector,
         PatternAnalyzer $patternAnalyzer,
-        SummaryCalculator $summaryCalculator
+        SummaryCalculator $summaryCalculator,
+        \App\Domain\Attendance\Services\ViolationDetector $violationDetector
     ): void
     {
         try {
@@ -235,6 +236,31 @@ class ProcessAttendanceEvent implements ShouldQueue
             } catch (\Exception $e) {
                 // Log summary update errors but don't fail the job
                 Log::channel('mqtt')->warning('Failed to update daily attendance summary', [
+                    'employee_id' => $employee->id,
+                    'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Step 8.6: Detect and log attendance violations
+            try {
+                $violations = $violationDetector->detectFromRecord($record);
+
+                foreach ($violations as $violation) {
+                    event(new \App\Events\ViolationDetected($violation));
+
+                    Log::channel('mqtt')->info('Violation detected', [
+                        'employee_id' => $employee->id,
+                        'violation_id' => $violation->id,
+                        'type' => $violation->type,
+                        'severity' => $violation->severity,
+                        'minutes_deviation' => $violation->minutes_deviation,
+                        'violation_date' => $violation->violation_date->toDateString(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Log violation detection errors but don't fail the job
+                Log::channel('mqtt')->warning('Failed to detect violations', [
                     'employee_id' => $employee->id,
                     'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
                     'error' => $e->getMessage(),

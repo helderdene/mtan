@@ -161,6 +161,22 @@ class Employee extends Model
     }
 
     /**
+     * Get employee's shift for a specific date.
+     */
+    public function getShiftForDate(\Carbon\Carbon $date): ?Shift
+    {
+        $dateString = $date->toDateString();
+
+        return $this->shifts()
+            ->wherePivot('effective_from', '<=', $dateString)
+            ->where(function ($query) use ($dateString) {
+                $query->where('employee_shifts.effective_to', '>=', $dateString)
+                    ->orWhereNull('employee_shifts.effective_to');
+            })
+            ->first();
+    }
+
+    /**
      * Relationship: Employee has many device enrollments
      */
     public function deviceEnrollments(): HasMany
