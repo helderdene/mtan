@@ -4,13 +4,16 @@ namespace App\Domain\Attendance\Models;
 
 use App\Models\Tenant\AttendanceRecord;
 use App\Models\Tenant\Employee;
+use App\Traits\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceViolation extends Model
 {
-    use HasFactory;
+    use HasFactory, UsesTenantConnection;
+
+    protected $connection = 'tenant';
 
     protected $fillable = [
         'employee_id',

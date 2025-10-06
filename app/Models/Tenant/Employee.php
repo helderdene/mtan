@@ -3,6 +3,7 @@
 namespace App\Models\Tenant;
 
 use App\Jobs\SyncEmployeeToDevices;
+use App\Traits\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,22 +14,9 @@ use Illuminate\Support\Facades\DB;
 
 class Employee extends Model
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, UsesTenantConnection;
 
     protected $connection = 'tenant';
-
-    /**
-     * Get the database connection for the model.
-     */
-    public function getConnectionName()
-    {
-        // Use default connection in testing environment
-        if (app()->bound('env') && app()->environment('testing')) {
-            return config('database.default');
-        }
-
-        return $this->connection;
-    }
 
     protected $fillable = [
         'custom_id',
