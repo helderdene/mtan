@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Domain\Shift\Models\Shift;
+use App\Models\Tenant\Shift;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ShiftFactory extends Factory
@@ -59,6 +59,29 @@ class ShiftFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_default' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that this is a flexible shift
+     */
+    public function flexible(string $windowStart = '08:00:00', string $windowEnd = '10:00:00', float $coreHours = 8.0): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'shift_type' => 'flexible',
+            'flexible_checkin_start' => $windowStart,
+            'flexible_checkin_end' => $windowEnd,
+            'core_hours_required' => $coreHours,
+        ]);
+    }
+
+    /**
+     * Indicate that this is a rotating shift
+     */
+    public function rotating(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'shift_type' => 'rotating',
         ]);
     }
 }

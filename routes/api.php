@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\ViolationActionController;
 use App\Http\Controllers\Api\V1\QueueMetricsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ShiftController;
+use App\Http\Controllers\Api\V1\ShiftRotationPatternController;
 use App\Http\Controllers\Api\V1\ViolationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,12 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
 
     // Shift Override Resource Routes
     Route::apiResource('shift-overrides', ShiftOverrideController::class);
+
+    // Shift Rotation Pattern Routes
+    Route::apiResource('shift-rotation-patterns', ShiftRotationPatternController::class);
+    Route::post('shift-rotation-patterns/{pattern}/assign-employee', [ShiftRotationPatternController::class, 'assignEmployee']);
+    Route::delete('employees/{employee}/rotation', [ShiftRotationPatternController::class, 'unassignEmployee']);
+    Route::get('employees/{employee}/shift-schedule', [ShiftRotationPatternController::class, 'getEmployeeSchedule']);
 
     // Attendance Summary Routes
     Route::get('attendance-summaries', [AttendanceSummaryController::class, 'index']);

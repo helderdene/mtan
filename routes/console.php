@@ -14,6 +14,9 @@ Schedule::command('violations:detect-missing-checkouts')->dailyAt('02:00');
 // Schedule daily violation digest to run daily at 8:00 AM
 Schedule::command('notifications:send-daily-violation-digest')->dailyAt('08:00');
 
+// Schedule shift rotation advancement to run daily at midnight
+Schedule::command('rotations:advance')->dailyAt('00:00');
+
 // Schedule daily reports to run every day at 6:00 AM
 Schedule::command('reports:send-scheduled --type=daily')->dailyAt('06:00');
 
