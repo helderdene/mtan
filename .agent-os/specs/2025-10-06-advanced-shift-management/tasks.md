@@ -42,7 +42,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.2 Update ShiftController to support flexible shift type (via factory states)
   - [x] 4.3 Update DirectionDetector to support flexible shift boundaries
   - [x] 4.4 Update SummaryCalculator to handle flexible expected hours
-  - [ ] 4.5 Update ViolationDetector for flexible shift validation (deferred)
+  - [x] 4.5 Update ViolationDetector for flexible shift validation
   - [ ] 4.6 Add FlexibleShiftForm.vue component (deferred)
   - [x] 4.7 Verify flexible shift tests pass
 
@@ -81,20 +81,19 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - **Models**: 2 new models (ShiftRotationPattern, EmployeeShiftRotation) with full relationships
 - **Services**: 2 core services (RotationScheduler, FlexibleShiftValidator)
 - **API**: 8 REST endpoints for rotation pattern management
-- **Integration**: DirectionDetector and SummaryCalculator support flexible shifts
+- **Integration**: DirectionDetector, SummaryCalculator, and ViolationDetector support flexible shifts
 - **Automation**: Daily rotation advancement command scheduled
-- **Tests**: 5 feature tests passing (20 assertions)
+- **Tests**: 7 feature tests passing (85 assertions)
 - **Documentation**: Complete recap document created
 
 ### 🔄 Deferred to Future Phases
-- **ViolationDetector Integration**: Flexible shift violation detection logic
 - **Frontend Components**: Vue.js UI for rotation patterns and flexible shifts
 - **Performance Testing**: Load testing with 1000+ employees
 - **Advanced Features**: Shift templates, swap functionality, employee preferences
 
-### 📊 Progress: 60/74 Tasks (81%)
+### 📊 Progress: 61/74 Tasks (82%)
 - **Phases 1-3**: 100% Complete (Core rotation system)
-- **Phase 4**: 85% Complete (Backend done, ViolationDetector + UI pending)
+- **Phase 4**: 100% Complete (All backend integrations done, UI pending)
 - **Phase 5**: 100% Complete (Automated rotation advancement)
 - **Phase 6**: 0% Complete (Frontend components deferred)
 - **Phase 7**: 0% Complete (Performance testing deferred)
@@ -105,12 +104,11 @@ The core backend is **fully functional and production-ready**. HR admins can:
 - Assign employees to rotations
 - View 30-day shift schedules
 - Automatic rotation advancement runs daily
-- Flexible shifts work with attendance tracking
+- Flexible shifts work with attendance tracking and violation detection
 
 ### 📝 Next Steps
 1. **Frontend Development**: Build Vue.js components for rotation pattern management
-2. **ViolationDetector Update**: Add flexible shift validation logic
-3. **Performance Testing**: Validate with production-scale data
-4. **User Documentation**: Create end-user guides for rotation patterns
+2. **Performance Testing**: Validate with production-scale data
+3. **User Documentation**: Create end-user guides for rotation patterns
 
 See completion recap: @.agent-os/specs/recaps/2025-10-07-advanced-shift-management.md

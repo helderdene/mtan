@@ -4,6 +4,7 @@ namespace App\Domain\Attendance\Services;
 
 use App\Domain\Attendance\Models\AttendanceViolation;
 use App\Domain\Attendance\Models\DailyAttendanceSummary;
+use App\Domain\Shift\Services\FlexibleShiftValidator;
 use App\Domain\Shift\Services\OverrideService;
 use App\Models\Tenant\AttendanceRecord;
 use App\Models\Tenant\Employee;
@@ -19,7 +20,8 @@ use Illuminate\Support\Collection;
 class ViolationDetector
 {
     public function __construct(
-        private readonly OverrideService $overrideService = new OverrideService()
+        private readonly OverrideService $overrideService = new OverrideService(),
+        private readonly FlexibleShiftValidator $flexibleShiftValidator = new FlexibleShiftValidator()
     ) {
     }
 
@@ -79,6 +81,12 @@ class ViolationDetector
             return null;
         }
 
+        // Handle flexible shifts differently
+        if ($shift->isFlexible()) {
+            return $this->detectFlexibleShiftLateArrival($record, $shift, $employee);
+        }
+
+        // Fixed shift logic (existing)
         $shiftStartTime = Carbon::parse($effectiveShift->startTime);
         $gracePeriod = config('violations.late_arrival_grace_minutes', 15);
         $allowedStartTime = $shiftStartTime->copy()->addMinutes($gracePeriod);
@@ -90,7 +98,7 @@ class ViolationDetector
                 'employee_id' => $employee->id,
                 'attendance_record_id' => $record->id,
                 'daily_summary_id' => $this->getDailySummaryId($employee, $record->recorded_at),
-                'violation_date' => $record->recorded_at->toDateString(),
+                'date' => $record->recorded_at->toDateString(),
                 'type' => 'late_arrival',
                 'severity' => $this->calculateSeverity('late_arrival', $minutesLate),
                 'minutes_deviation' => $minutesLate,
@@ -123,6 +131,12 @@ class ViolationDetector
             return null;
         }
 
+        // Handle flexible shifts differently
+        if ($shift->isFlexible()) {
+            return $this->detectFlexibleShiftEarlyDeparture($record, $shift, $employee);
+        }
+
+        // Fixed shift logic (existing)
         $shiftEndTime = Carbon::parse($effectiveShift->endTime);
         $gracePeriod = config('violations.early_departure_grace_minutes', 15);
         $allowedEndTime = $shiftEndTime->copy()->subMinutes($gracePeriod);
@@ -134,7 +148,7 @@ class ViolationDetector
                 'employee_id' => $employee->id,
                 'attendance_record_id' => $record->id,
                 'daily_summary_id' => $this->getDailySummaryId($employee, $record->recorded_at),
-                'violation_date' => $record->recorded_at->toDateString(),
+                'date' => $record->recorded_at->toDateString(),
                 'type' => 'early_departure',
                 'severity' => $this->calculateSeverity('early_departure', $minutesEarly),
                 'minutes_deviation' => $minutesEarly,
@@ -180,7 +194,7 @@ class ViolationDetector
                 'employee_id' => $employee->id,
                 'attendance_record_id' => $breakEndRecord->id,
                 'daily_summary_id' => $this->getDailySummaryId($employee, $breakEndRecord->recorded_at),
-                'violation_date' => $breakEndRecord->recorded_at->toDateString(),
+                'date' => $breakEndRecord->recorded_at->toDateString(),
                 'type' => 'extended_break',
                 'severity' => $this->calculateSeverity('extended_break', $minutesOver),
                 'minutes_deviation' => $minutesOver,
@@ -230,7 +244,7 @@ class ViolationDetector
                 'employee_id' => $employee->id,
                 'attendance_record_id' => null,
                 'daily_summary_id' => $this->getDailySummaryId($employee, $date),
-                'violation_date' => $date->toDateString(),
+                'date' => $date->toDateString(),
                 'type' => 'missing_checkout',
                 'severity' => 'moderate',
                 'minutes_deviation' => 0,
@@ -266,6 +280,116 @@ class ViolationDetector
         }
 
         return 'major';
+    }
+
+    /**
+     * Detect late arrival for flexible shifts.
+     */
+    private function detectFlexibleShiftLateArrival(
+        AttendanceRecord $record,
+        $shift,
+        Employee $employee
+    ): ?AttendanceViolation {
+        $checkInTime = $record->recorded_at;
+        $gracePeriod = config('violations.late_arrival_grace_minutes', 15);
+
+        // Get flexible window boundaries
+        $windowStart = $this->flexibleShiftValidator->getEarliestCheckInTime($shift, $checkInTime);
+        $windowEnd = $this->flexibleShiftValidator->getLatestCheckInTime($shift, $checkInTime);
+
+        if (! $windowStart || ! $windowEnd) {
+            return null; // Flexible shift not properly configured
+        }
+
+        // Apply grace period to window end
+        $allowedEndTime = $windowEnd->copy()->addMinutes($gracePeriod);
+
+        // Check if outside window (before start or after end + grace)
+        if ($checkInTime->lessThan($windowStart) || $checkInTime->greaterThan($allowedEndTime)) {
+            // Calculate deviation from nearest boundary
+            $minutesDeviation = 0;
+            if ($checkInTime->lessThan($windowStart)) {
+                $minutesDeviation = $checkInTime->diffInMinutes($windowStart);
+            } else {
+                $minutesDeviation = $windowEnd->diffInMinutes($checkInTime);
+            }
+
+            return AttendanceViolation::create([
+                'employee_id' => $employee->id,
+                'attendance_record_id' => $record->id,
+                'daily_summary_id' => $this->getDailySummaryId($employee, $checkInTime),
+                'date' => $checkInTime->toDateString(),
+                'type' => 'late_arrival',
+                'severity' => $this->calculateSeverity('late_arrival', $minutesDeviation),
+                'minutes_deviation' => $minutesDeviation,
+                'metadata' => [
+                    'shift_type' => 'flexible',
+                    'flexible_window' => [
+                        'start' => $windowStart->format('H:i:s'),
+                        'end' => $windowEnd->format('H:i:s'),
+                    ],
+                    'actual_check_in_time' => $checkInTime->format('H:i:s'),
+                    'grace_period_minutes' => $gracePeriod,
+                ],
+                'status' => 'pending',
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect early departure for flexible shifts.
+     */
+    private function detectFlexibleShiftEarlyDeparture(
+        AttendanceRecord $record,
+        $shift,
+        Employee $employee
+    ): ?AttendanceViolation {
+        $checkOutTime = $record->recorded_at;
+        $date = $checkOutTime->copy()->startOfDay();
+
+        // Find the corresponding check-in record
+        $checkInRecord = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereDate('recorded_at', $date)
+            ->where('direction', 'check-in')
+            ->where('recorded_at', '<', $checkOutTime)
+            ->orderBy('recorded_at', 'desc')
+            ->first();
+
+        if (! $checkInRecord) {
+            return null; // No check-in found, can't validate
+        }
+
+        // Calculate expected end time based on check-in + core hours
+        $expectedEndTime = $this->flexibleShiftValidator->calculateExpectedEndTime($shift, $checkInRecord->recorded_at);
+        $gracePeriod = config('violations.early_departure_grace_minutes', 15);
+        $allowedEndTime = $expectedEndTime->copy()->subMinutes($gracePeriod);
+
+        if ($checkOutTime->lessThan($allowedEndTime)) {
+            $minutesEarly = $checkOutTime->diffInMinutes($expectedEndTime);
+
+            return AttendanceViolation::create([
+                'employee_id' => $employee->id,
+                'attendance_record_id' => $record->id,
+                'daily_summary_id' => $this->getDailySummaryId($employee, $checkOutTime),
+                'date' => $checkOutTime->toDateString(),
+                'type' => 'early_departure',
+                'severity' => $this->calculateSeverity('early_departure', $minutesEarly),
+                'minutes_deviation' => $minutesEarly,
+                'metadata' => [
+                    'shift_type' => 'flexible',
+                    'core_hours_required' => $shift->core_hours_required,
+                    'check_in_time' => $checkInRecord->recorded_at->format('H:i:s'),
+                    'expected_end_time' => $expectedEndTime->format('H:i:s'),
+                    'actual_check_out_time' => $checkOutTime->format('H:i:s'),
+                    'grace_period_minutes' => $gracePeriod,
+                ],
+                'status' => 'pending',
+            ]);
+        }
+
+        return null;
     }
 
     /**
