@@ -30,6 +30,8 @@ class AttendanceRecord extends Model
         'device_id',
         'recorded_at',
         'direction',
+        'is_manual_correction',
+        'correction_id',
         'recognition_score',
         'confidence_score',
         'detection_reason',
@@ -48,6 +50,7 @@ class AttendanceRecord extends Model
         'confidence_score' => 'integer',
         'temperature' => 'decimal:1',
         'mask_status' => 'boolean',
+        'is_manual_correction' => 'boolean',
     ];
 
     protected $appends = ['date', 'check_in', 'check_out', 'total_hours'];
@@ -66,6 +69,14 @@ class AttendanceRecord extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
+    }
+
+    /**
+     * Relationship: Record belongs to a correction (if manual)
+     */
+    public function correction(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Attendance\Models\AttendanceCorrection::class, 'correction_id');
     }
 
     /**

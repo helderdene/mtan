@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\ShiftOverrideController;
+use App\Http\Controllers\Api\V1\AttendanceCorrectionController;
 use App\Http\Controllers\Api\V1\AttendanceSummaryController;
+use App\Http\Controllers\Api\V1\ManagerCorrectionController;
 use App\Http\Controllers\Api\V1\ShiftController;
 use App\Http\Controllers\Api\V1\ViolationController;
 use Illuminate\Http\Request;
@@ -41,4 +43,15 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::get('employees/{employee}/violations', [ViolationController::class, 'employeeViolations']);
     Route::post('violations/{violation}/acknowledge', [ViolationController::class, 'acknowledge']);
     Route::post('violations/{violation}/dispute', [ViolationController::class, 'dispute']);
+
+    // Attendance Correction Routes (Employee)
+    Route::apiResource('corrections', AttendanceCorrectionController::class);
+    Route::get('corrections/{correction}/document', [AttendanceCorrectionController::class, 'downloadDocument']);
+
+    // Manager Correction Routes
+    Route::prefix('manager')->group(function () {
+        Route::get('corrections', [ManagerCorrectionController::class, 'index']);
+        Route::post('corrections/{correction}/approve', [ManagerCorrectionController::class, 'approve']);
+        Route::post('corrections/{correction}/reject', [ManagerCorrectionController::class, 'reject']);
+    });
 });

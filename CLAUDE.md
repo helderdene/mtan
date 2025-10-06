@@ -612,6 +612,351 @@ php artisan test tests/Feature/Attendance/
 - All times stored in HH:MM:SS format (24-hour)
 - Calculations handle missing data gracefully (null-safe)
 
+### Attendance Correction Workflow
+
+The system provides a complete workflow for employees to request attendance corrections and managers to review/approve them, with full audit trails and automatic application of approved changes.
+
+**Core Purpose:**
+- Allow employees to request corrections for attendance errors (wrong time, missing records, duplicates)
+- Enable manager review with approval/rejection workflow
+- Automatically apply approved corrections to attendance data
+- Recalculate daily summaries and violations after corrections
+- Maintain complete audit trail for compliance
+
+**Database Schema:**
+
+```sql
+attendance_corrections
+├── id
+├── employee_id                     -- Employee requesting correction
+├── attendance_record_id (nullable) -- Record being corrected (null for missing records)
+├── type                            -- Enum: missing_checkout | wrong_time | duplicate_record | missing_record | other
+├── status                          -- Enum: pending | approved | rejected | applied
+├── original_data (json, nullable)  -- Snapshot of original data
+├── proposed_data (json)            -- Requested changes
+├── reason (text)                   -- Employee's explanation (required, min 10 chars)
+├── supporting_document_path        -- Optional file upload (PDF/JPG/PNG, max 5MB)
+├── reviewed_by (nullable)          -- Manager who reviewed
+├── reviewed_at (nullable)          -- Timestamp of review
+├── review_notes (nullable)         -- Manager's notes
+├── applied_at (nullable)           -- Timestamp when applied
+├── created_at
+├── updated_at
+└── INDEXES: status, (employee_id, status)
+
+audit_logs (polymorphic for all correction actions)
+├── id
+├── user_id                         -- Who performed the action
+├── auditable_type                  -- AttendanceCorrection | AttendanceRecord
+├── auditable_id
+├── action                          -- created | updated | approved | rejected | applied
+├── old_values (json)               -- Before state
+├── new_values (json)               -- After state
+├── ip_address
+├── user_agent
+├── notes
+├── created_at
+└── INDEXES: (auditable_type, auditable_id), user_id, action
+
+attendance_records (updated)
+├── ... existing fields ...
+├── is_manual_correction (boolean)  -- TRUE if created/modified by correction
+├── correction_id (nullable)        -- Link to correction that created/modified this
+```
+
+**Correction Types:**
+
+1. **missing_checkout** - Employee forgot to check out
+   ```json
+   { "proposed_data": { "check_out_time": "17:00:00" } }
+   ```
+
+2. **wrong_time** - Device recorded incorrect time
+   ```json
+   { "proposed_data": { "check_in_time": "09:00:00" } }
+   ```
+
+3. **duplicate_record** - Multiple records created by error
+   ```json
+   { "proposed_data": { "duplicate_record_id": 123 } }
+   ```
+
+4. **missing_record** - No record but employee was present
+   ```json
+   {
+     "proposed_data": {
+       "date": "2025-10-06",
+       "check_in_time": "09:00:00",
+       "check_out_time": "17:00:00"  // Optional
+     }
+   }
+   ```
+
+**Workflow States:**
+
+```
+pending → approved → applied
+       ↘ rejected
+```
+
+- **pending**: Initial state when employee submits request
+- **approved**: Manager approved, ready for application
+- **rejected**: Manager rejected with required notes
+- **applied**: Correction successfully applied to attendance data
+
+**Core Services:**
+
+```php
+// CorrectionApplicator - Applies approved corrections with transaction safety
+use App\Domain\Attendance\Services\CorrectionApplicator;
+
+$applicator = app(CorrectionApplicator::class);
+
+// Apply correction (transaction-wrapped, auto-rollback on error)
+$applicator->apply($correction);
+
+// What happens:
+// 1. Validates correction is approved
+// 2. Applies changes based on type:
+//    - missing_checkout: Creates check-out record
+//    - wrong_time: Updates record timestamp
+//    - duplicate_record: Deletes duplicate
+//    - missing_record: Creates check-in and/or check-out records
+// 3. Marks records as is_manual_correction = true
+// 4. Links records to correction via correction_id
+// 5. Updates correction.status = 'applied'
+// 6. Recalculates daily summary for affected date
+// 7. Re-runs violation detection (removes old, detects new)
+// 8. Dispatches CorrectionApplied event
+// 9. Logs all changes in audit_logs
+```
+
+**RESTful API Endpoints:**
+
+All endpoints protected by `auth:sanctum` middleware:
+
+```bash
+# Employee Endpoints
+GET    /api/v1/corrections                           # List employee's corrections (filter by status, type)
+POST   /api/v1/corrections                           # Create correction request
+GET    /api/v1/corrections/{correction}              # View correction details
+PUT    /api/v1/corrections/{correction}              # Update pending correction
+DELETE /api/v1/corrections/{correction}              # Cancel pending correction
+GET    /api/v1/corrections/{correction}/document     # Download supporting document
+
+# Manager Endpoints
+GET    /api/v1/manager/corrections                   # List team's pending corrections
+POST   /api/v1/manager/corrections/{correction}/approve  # Approve and auto-apply correction
+POST   /api/v1/manager/corrections/{correction}/reject   # Reject with required notes
+```
+
+**API Request/Response Examples:**
+
+```php
+// Create correction request
+POST /api/v1/corrections
+{
+  "employee_id": 1,
+  "attendance_record_id": 123,  // null for missing_record type
+  "type": "wrong_time",
+  "proposed_data": {
+    "check_in_time": "09:00:00"
+  },
+  "reason": "Device was offline, manually verified with security",
+  "supporting_document": <file>  // Optional PDF/JPG/PNG
+}
+
+// Response 201
+{
+  "id": 1,
+  "employee_id": 1,
+  "attendance_record_id": 123,
+  "type": "wrong_time",
+  "status": "pending",
+  "proposed_data": {"check_in_time": "09:00:00"},
+  "reason": "Device was offline...",
+  "supporting_document_path": "corrections/documents/abc123.pdf",
+  "created_at": "2025-10-06T10:00:00Z",
+  "employee": { ... },
+  "attendanceRecord": { ... }
+}
+
+// Manager approve
+POST /api/v1/manager/corrections/1/approve
+{
+  "notes": "Verified with security logs"  // Optional
+}
+
+// Response 200
+{
+  "message": "Correction approved and applied successfully",
+  "correction": {
+    "id": 1,
+    "status": "applied",
+    "reviewed_by": 5,
+    "reviewed_at": "2025-10-06T11:00:00Z",
+    "review_notes": "Verified with security logs",
+    "applied_at": "2025-10-06T11:00:01Z",
+    ...
+  }
+}
+
+// Manager reject
+POST /api/v1/manager/corrections/1/reject
+{
+  "notes": "Cannot verify your claim with available records"  // REQUIRED (min 10 chars)
+}
+```
+
+**Event-Driven Notifications:**
+
+```php
+// Events
+CorrectionRequested  → Dispatched when employee creates request
+CorrectionApproved   → Dispatched when manager approves
+CorrectionRejected   → Dispatched when manager rejects
+CorrectionApplied    → Dispatched when correction successfully applied
+
+// Listeners (queued on 'notifications' queue)
+NotifyManagerOfCorrectionRequest     → Sends email to employee's manager
+NotifyEmployeeOfCorrectionDecision   → Sends approval/rejection email to employee
+
+// Notifications
+CorrectionRequestedNotification  → "John Doe submitted a wrong_time correction request"
+CorrectionDecisionNotification   → "Your correction request has been Approved/Rejected"
+```
+
+**Validation Rules:**
+
+```php
+// CreateCorrectionRequest
+'employee_id' => 'required|exists:employees,id',
+'attendance_record_id' => 'nullable|exists:attendance_records,id',
+'type' => 'required|in:missing_checkout,wrong_time,duplicate_record,missing_record,other',
+'proposed_data' => 'required|array',
+'reason' => 'required|string|min:10|max:1000',
+'supporting_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+
+// UpdateCorrectionRequest
+// - Only pending corrections can be updated
+// - All fields optional (sometimes)
+// - Authorization: $correction->canBeUpdatedByEmployee()
+
+// ApproveRejectRequest
+// - Only pending corrections can be reviewed
+// - Rejection requires notes (min 10 chars)
+// - Approval notes optional
+```
+
+**Model Methods:**
+
+```php
+use App\Domain\Attendance\Models\AttendanceCorrection;
+
+// State checks
+$correction->isPending();     // status === 'pending'
+$correction->isApproved();    // status === 'approved'
+$correction->isRejected();    // status === 'rejected'
+$correction->isApplied();     // status === 'applied'
+
+// Employee permissions
+$correction->canBeUpdatedByEmployee();   // isPending()
+$correction->canBeCancelledByEmployee(); // isPending()
+
+// Manager actions (triggers events and audit logs)
+$correction->approve($manager, $notes);
+$correction->reject($manager, $notes);
+$correction->markAsApplied();  // Called by CorrectionApplicator
+
+// Scopes
+AttendanceCorrection::pending()->get();
+AttendanceCorrection::approved()->get();
+AttendanceCorrection::forEmployee($employeeId)->get();
+AttendanceCorrection::ofType('wrong_time')->get();
+```
+
+**Audit Trail:**
+
+Every correction action is automatically logged:
+
+```php
+use App\Models\AuditLog;
+
+// Automatic logging on:
+// - Correction created
+// - Correction updated
+// - Correction approved
+// - Correction rejected
+// - Correction applied
+// - Related attendance records modified
+
+// Query audit history
+$correction->auditLogs()->orderBy('created_at', 'desc')->get();
+
+// Each log contains:
+// - Who performed the action (user_id)
+// - What was changed (old_values, new_values)
+// - When it happened (created_at)
+// - Where (ip_address)
+// - Why (notes)
+```
+
+**File Upload Handling:**
+
+```php
+// Storage location: storage/app/corrections/documents/
+// Disk: 'local' (Laravel Storage)
+
+// Upload document
+$file = $request->file('supporting_document');
+$path = $file->store('corrections/documents', 'local');
+$correction->supporting_document_path = $path;
+
+// Download document
+GET /api/v1/corrections/{correction}/document
+// Returns file download response
+
+// Document deleted when:
+// - Employee cancels pending correction
+// - Employee replaces document during update
+```
+
+**Testing:**
+
+```php
+// Feature tests (30 tests covering):
+// - Employee CRUD operations
+// - Manager review workflow
+// - File upload/download
+// - Validation rules
+// - Permission checks
+// - Event dispatching
+// - Notification sending
+
+// Unit tests (8 tests covering):
+// - CorrectionApplicator for all types
+// - Transaction rollback on errors
+// - Daily summary recalculation
+// - Violation re-detection
+
+php artisan test tests/Feature/Attendance/CorrectionWorkflowTest.php
+php artisan test tests/Unit/Attendance/CorrectionApplicatorTest.php
+php artisan test tests/Feature/Attendance/CorrectionNotificationTest.php
+```
+
+**Important Implementation Notes:**
+
+- All correction applications wrapped in database transactions for safety
+- Failed corrections automatically roll back with error logging
+- Daily summaries recalculated after corrections applied
+- Violations re-detected after corrections (old removed, new added)
+- Supporting documents stored securely with Laravel Storage
+- Complete audit trail for regulatory compliance
+- Manager's employee relationship required for permission checks
+- Rejection requires detailed notes (min 10 chars) for transparency
+- Correction status cannot go backwards (no unapproving)
+- Employee model requires Notifiable trait for notifications
+
 ### Real-Time Violation Notifications
 
 The system automatically sends email notifications to managers when violations are detected, with configurable preferences and daily digest support.
