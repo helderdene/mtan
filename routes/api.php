@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\QueueMetricsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ShiftController;
 use App\Http\Controllers\Api\V1\ShiftRotationPatternController;
+use App\Http\Controllers\Api\V1\StrangerLogController;
 use App\Http\Controllers\Api\V1\ViolationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,13 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::get('attendance-summaries', [AttendanceSummaryController::class, 'index']);
     Route::get('attendance-summaries/{id}', [AttendanceSummaryController::class, 'show']);
     Route::post('attendance-summaries/recalculate', [AttendanceSummaryController::class, 'recalculate']);
+
+    // Stranger Log Routes
+    Route::get('stranger-logs', [StrangerLogController::class, 'index']);
+    Route::get('stranger-logs/{id}', [StrangerLogController::class, 'show']);
+    Route::post('stranger-logs/{id}/match', [StrangerLogController::class, 'match']);
+    Route::post('stranger-logs/{id}/mark-security-issue', [StrangerLogController::class, 'markSecurityIssue']);
+    Route::post('stranger-logs/bulk-process', [StrangerLogController::class, 'bulkProcess']);
 
     // Violation Routes
     Route::get('violations', [ViolationController::class, 'index']);

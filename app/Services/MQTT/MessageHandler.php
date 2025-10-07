@@ -34,6 +34,9 @@ class MessageHandler
             if (preg_match('/\/Rec$/', $topic)) {
                 // Attendance recognition event
                 $this->handleAttendanceEvent($topic, $payload);
+            } elseif (preg_match('/\/Stranger$/', $topic)) {
+                // Stranger detection event
+                $this->handleStrangerEvent($topic, $payload);
             } elseif (preg_match('/\/Ack$/', $topic)) {
                 // Device sync acknowledgment
                 $this->handleSyncAcknowledgment($topic, $payload);
@@ -296,6 +299,24 @@ class MessageHandler
             'facesluiceId' => $facesluiceId,
             'operator' => $operator,
             'info' => $info,
+        ]);
+    }
+
+    /**
+     * Handle stranger detection event
+     */
+    protected function handleStrangerEvent(string $topic, string $payload): void
+    {
+        // Parse the MQTT payload into DTO
+        $event = \App\DTOs\StrangerEventDTO::fromMqttPayload($topic, $payload);
+
+        // Dispatch to queue for processing
+        \App\Jobs\ProcessStrangerEvent::dispatch($event);
+
+        Log::channel('mqtt')->info('Stranger event dispatched to queue', [
+            'device_id' => $event->device_id,
+            'record_id' => $event->record_id,
+            'similarity_score' => $event->similarity_score,
         ]);
     }
 
