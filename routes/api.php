@@ -33,9 +33,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // API V1 Routes
 Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
-    // Shift Resource Routes
-    Route::apiResource('shifts', ShiftController::class);
-
     // Shift Override Resource Routes
     Route::apiResource('shift-overrides', ShiftOverrideController::class);
 

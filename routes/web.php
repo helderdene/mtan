@@ -79,6 +79,9 @@ Route::middleware(['auth', 'verified', 'tenant_admin'])->group(function () {
     Route::post('shifts/{shift}/assign-employees', [\App\Http\Controllers\ShiftController::class, 'assignEmployees'])
         ->name('shifts.assign-employees');
 
+    // Rotation Patterns
+    Route::resource('rotation-patterns', \App\Http\Controllers\RotationPatternController::class);
+
     // Attendance
     Route::get('attendance/live', [\App\Http\Controllers\AttendanceController::class, 'liveFeed'])
         ->name('attendance.live');

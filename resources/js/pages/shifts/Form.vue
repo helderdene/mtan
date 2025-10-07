@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Save, X, Clock, Calendar, AlertCircle } from 'lucide-vue-next'
+import { Save, X, Clock, Calendar, AlertCircle, Repeat, Moon, Zap } from 'lucide-vue-next'
 import shiftsRoute from '@/routes/shifts'
 import { dashboard } from '@/routes'
 import { useShiftBreakValidation } from '@/composables/useShiftBreakValidation'
@@ -20,6 +20,11 @@ interface Shift {
   break_end: string | null
   working_days: string[]
   is_default: boolean
+  shift_type: 'fixed' | 'flexible' | 'rotating'
+  is_overnight: boolean
+  flexible_checkin_start: string | null
+  flexible_checkin_end: string | null
+  core_hours_required: number | null
 }
 
 interface Props {
@@ -42,12 +47,17 @@ const weekDays = [
 
 const form = useForm({
   name: props.shift?.name || '',
+  shift_type: props.shift?.shift_type || 'fixed',
   start_time: props.shift?.start_time || '09:00:00',
   end_time: props.shift?.end_time || '17:00:00',
   break_start: props.shift?.break_start || '',
   break_end: props.shift?.break_end || '',
   working_days: props.shift?.working_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
   is_default: props.shift?.is_default ?? false,
+  is_overnight: props.shift?.is_overnight ?? false,
+  flexible_checkin_start: props.shift?.flexible_checkin_start || '',
+  flexible_checkin_end: props.shift?.flexible_checkin_end || '',
+  core_hours_required: props.shift?.core_hours_required || 8,
 })
 
 const toggleWorkingDay = (day: string) => {
@@ -73,6 +83,18 @@ const { errors: breakErrors, validate: validateBreaks, isOvernightShift } = useS
 watch([() => form.break_start, () => form.break_end, () => form.start_time, () => form.end_time], () => {
   validateBreaks()
 })
+
+// Helper function to calculate end time for flexible shifts
+const calculateEndTime = (startTime: string, hours: number): string => {
+  if (!startTime || !hours) return ''
+
+  const [startHours, startMinutes] = startTime.split(':').map(Number)
+  const totalMinutes = startHours * 60 + startMinutes + (hours * 60)
+  const endHours = Math.floor(totalMinutes / 60) % 24
+  const endMinutes = totalMinutes % 60
+
+  return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`
+}
 
 const submit = () => {
   // Run frontend validation before submitting
@@ -149,6 +171,49 @@ const submit = () => {
             </p>
           </div>
 
+          <!-- Shift Type -->
+          <div class="relative">
+            <div class="absolute -top-4 -left-4 w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full opacity-10 blur-2xl"></div>
+            <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+              <div class="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                <Repeat class="h-4 w-4 text-white" />
+              </div>
+              Shift Type
+            </h3>
+            <Label for="shift_type" class="text-sm font-medium">Type *</Label>
+            <select
+              id="shift_type"
+              v-model="form.shift_type"
+              class="mt-2 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              :class="{ 'border-destructive': form.errors.shift_type }"
+            >
+              <option value="fixed">Fixed Schedule - Standard work hours</option>
+              <option value="flexible">Flexible Schedule - Variable check-in window with core hours</option>
+              <option value="rotating">Rotating Schedule - Shifts rotate on a schedule</option>
+            </select>
+            <p v-if="form.errors.shift_type" class="text-sm text-destructive mt-1">
+              {{ form.errors.shift_type }}
+            </p>
+            <p class="text-xs text-muted-foreground mt-2">
+              Select the type of shift schedule for this shift
+            </p>
+          </div>
+
+          <!-- Overnight Shift Toggle -->
+          <div class="flex items-center space-x-2 p-4 rounded-lg bg-muted/50 border">
+            <Checkbox
+              id="is_overnight"
+              v-model:checked="form.is_overnight"
+            />
+            <Label for="is_overnight" class="text-sm font-normal cursor-pointer flex items-center gap-2">
+              <Moon class="h-4 w-4" />
+              <div>
+                <div>Overnight Shift</div>
+                <div class="text-xs text-muted-foreground">Shift crosses midnight (e.g., 10 PM - 6 AM)</div>
+              </div>
+            </Label>
+          </div>
+
           <!-- Shift Time Range -->
           <div class="relative">
             <div class="absolute -top-4 -left-4 w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full opacity-10 blur-2xl"></div>
@@ -186,6 +251,108 @@ const submit = () => {
                 />
                 <p v-if="form.errors.end_time" class="text-sm text-destructive mt-1">
                   {{ form.errors.end_time }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Flexible Shift Settings -->
+          <div v-if="form.shift_type === 'flexible'" class="relative">
+            <div class="absolute -top-4 -left-4 w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full opacity-10 blur-2xl"></div>
+            <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+              <div class="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500">
+                <Zap class="h-4 w-4 text-white" />
+              </div>
+              Flexible Shift Configuration
+            </h3>
+
+            <!-- Info Box -->
+            <div class="mb-6 p-4 rounded-lg bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800">
+              <p class="text-sm text-cyan-900 dark:text-cyan-100 flex items-center gap-2">
+                <AlertCircle class="w-4 h-4" />
+                <span class="font-medium">Flexible shifts allow employees to check in within a time window and work a set number of core hours.</span>
+              </p>
+              <p class="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
+                Example: Check-in window 8:00-10:00 AM, Core hours: 8 hours. Employee checks in at 9:00 AM, must work until 5:00 PM.
+              </p>
+            </div>
+
+            <!-- Check-in Window -->
+            <div class="space-y-4">
+              <Label class="text-sm font-medium">Check-in Window *</Label>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <Label for="flexible_checkin_start" class="text-sm font-medium">Earliest Check-in</Label>
+                  <Input
+                    id="flexible_checkin_start"
+                    v-model="form.flexible_checkin_start"
+                    type="time"
+                    step="1"
+                    class="mt-2 transition-all focus:ring-2 focus:ring-cyan-500/20"
+                    :class="{ 'border-destructive': form.errors.flexible_checkin_start }"
+                  />
+                  <p v-if="form.errors.flexible_checkin_start" class="text-sm text-destructive mt-1">
+                    {{ form.errors.flexible_checkin_start }}
+                  </p>
+                  <p class="text-xs text-muted-foreground mt-1">
+                    Earliest time employees can check in
+                  </p>
+                </div>
+
+                <div>
+                  <Label for="flexible_checkin_end" class="text-sm font-medium">Latest Check-in</Label>
+                  <Input
+                    id="flexible_checkin_end"
+                    v-model="form.flexible_checkin_end"
+                    type="time"
+                    step="1"
+                    class="mt-2 transition-all focus:ring-2 focus:ring-cyan-500/20"
+                    :class="{ 'border-destructive': form.errors.flexible_checkin_end }"
+                  />
+                  <p v-if="form.errors.flexible_checkin_end" class="text-sm text-destructive mt-1">
+                    {{ form.errors.flexible_checkin_end }}
+                  </p>
+                  <p class="text-xs text-muted-foreground mt-1">
+                    Latest time employees can check in
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Core Hours Required -->
+            <div class="mt-6">
+              <Label for="core_hours_required" class="text-sm font-medium">Core Hours Required *</Label>
+              <Input
+                id="core_hours_required"
+                v-model.number="form.core_hours_required"
+                type="number"
+                min="1"
+                max="24"
+                step="0.5"
+                class="mt-2 transition-all focus:ring-2 focus:ring-cyan-500/20"
+                :class="{ 'border-destructive': form.errors.core_hours_required }"
+              />
+              <p v-if="form.errors.core_hours_required" class="text-sm text-destructive mt-1">
+                {{ form.errors.core_hours_required }}
+              </p>
+              <p class="text-xs text-muted-foreground mt-1">
+                Number of hours employees must work after check-in (e.g., 8 hours)
+              </p>
+            </div>
+
+            <!-- Example Calculation -->
+            <div v-if="form.flexible_checkin_start && form.flexible_checkin_end && form.core_hours_required" class="mt-6 p-4 rounded-lg bg-muted/50 border">
+              <p class="text-xs font-medium mb-2">Example Schedule:</p>
+              <div class="text-xs text-muted-foreground space-y-1">
+                <p>• Check-in window: {{ form.flexible_checkin_start }} - {{ form.flexible_checkin_end }}</p>
+                <p>• Core hours: {{ form.core_hours_required }} hours</p>
+                <p class="text-cyan-600 dark:text-cyan-400 font-medium mt-2">
+                  If employee checks in at {{ form.flexible_checkin_start }}, they work until
+                  {{ calculateEndTime(form.flexible_checkin_start, form.core_hours_required) }}
+                </p>
+                <p class="text-cyan-600 dark:text-cyan-400 font-medium">
+                  If employee checks in at {{ form.flexible_checkin_end }}, they work until
+                  {{ calculateEndTime(form.flexible_checkin_end, form.core_hours_required) }}
                 </p>
               </div>
             </div>
